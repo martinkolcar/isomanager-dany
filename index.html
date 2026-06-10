@@ -292,9 +292,10 @@ window.loadIsoDataFromFirebase = function(){
         window.ISOMETRIES_DATA[sec] = Object.keys(isos).map(k =>
           isos[k].name || k
         );
-        // Ulož thumbnail URL do cache
         Object.entries(isos).forEach(([isoK, isoData]) => {
-          if(isoData && isoData.thumbnail){
+          if(isoData && isoData.thumbnailUrl){
+            window._isoUrls[sec+'/'+isoK] = isoData.thumbnailUrl;
+          } else if(isoData && isoData.thumbnail){
             window._isoUrls[sec+'/'+isoK] = isoData.thumbnail;
           }
         });
