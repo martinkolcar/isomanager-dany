@@ -281,24 +281,34 @@ window.SECTIONS = [];
 
 window.loadIsoDataFromFirebase = function(){
   if(!window.DB) return;
-  // Načítaj sekcie z Firebase (zapísané z WeldPro)
   db.ref('isomanager/sections').on('value', snap => {
     const data = snap.val();
+    window._isoUrls = {};
     if(data){
       window.SECTIONS = Object.keys(data).sort();
-      // Naplň ISOMETRIES_DATA
       window.ISOMETRIES_DATA = {};
       window.SECTIONS.forEach(sec => {
-        window.ISOMETRIES_DATA[sec] = data[sec] ? Object.keys(data[sec]) : [];
+        const isos = data[sec] || {};
+        // Všetky izometrie aj bez spoolov
+        window.ISOMETRIES_DATA[sec] = Object.keys(isos).map(k =>
+          isos[k].name || k
+        );
+        // Ulož URL náhľadov do cache
+        Object.entries(isos).forEach(([isoK, isoData]) => {
+          if(isoData && isoData.pdfUrl){
+            window._isoUrls[sec+'/'+isoK] = isoData.pdfUrl;
+          }
+        });
       });
     } else {
       window.SECTIONS = [];
       window.ISOMETRIES_DATA = {};
     }
-    // Aktualizuj UI sekcií
     if(typeof renderSecTabs === 'function') renderSecTabs();
-    if(typeof initApp === 'function' && window.DB) {
-      if(window.SECTIONS.length > 0) switchSec(window.SECTIONS[0]);
+    if(window.SECTIONS.length > 0 && !curSec){
+      switchSec(window.SECTIONS[0]);
+    } else {
+      renderSb();
     }
   });
 };
@@ -2414,17 +2424,29 @@ const SUL_DRIVE_IDS = {
   "ÅM58-712-20004-1-50-160C1B": "1fPoxXOXt2qLysD1hnLYpLr7HKEhghQOZ",
 };
 
+// Dany - náhľady z WeldPro Firebase knižnice
+// Uložené v: isomanager/sections/SEC/ISO_KEY/pdfUrl
+window._isoUrls = {}; // cache: sec/iso -> url
+
+function loadIsoUrlsFromFirebase(){
+  if(!window.DB) return;
+  db.ref('isomanager/sections').on('value', snap => {
+    const data = snap.val()||{};
+    window._isoUrls = {};
+    Object.entries(data).forEach(([sec, isos]) => {
+      Object.entries(isos||{}).forEach(([isoKey, isoData]) => {
+        if(isoData && isoData.pdfUrl){
+          window._isoUrls[sec+'/'+isoKey] = isoData.pdfUrl;
+        }
+      });
+    });
+    renderSb();
+  });
+}
+
 function getIsoJpgUrl(sec, iso) {
-  if (sec === 'FLA' && FLA_DRIVE_IDS[iso]) {
-    return 'isometries/FLA/' + iso + '.jpg';
-  }
-  if (sec === 'LIG' && LIG_DRIVE_IDS[iso]) {
-    return 'https://lh3.googleusercontent.com/d/' + LIG_DRIVE_IDS[iso];
-  }
-  if (sec === 'SUL' && SUL_DRIVE_IDS[iso]) {
-    return 'https://lh3.googleusercontent.com/d/' + SUL_DRIVE_IDS[iso];
-  }
-  return null;
+  const key = sec + '/' + isoKey(iso);
+  return window._isoUrls[key] || null;
 }
 </script>
 <style>
