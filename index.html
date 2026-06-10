@@ -289,14 +289,13 @@ window.loadIsoDataFromFirebase = function(){
       window.ISOMETRIES_DATA = {};
       window.SECTIONS.forEach(sec => {
         const isos = data[sec] || {};
-        // Všetky izometrie aj bez spoolov
         window.ISOMETRIES_DATA[sec] = Object.keys(isos).map(k =>
           isos[k].name || k
         );
-        // Ulož URL náhľadov do cache
+        // Ulož thumbnail URL do cache
         Object.entries(isos).forEach(([isoK, isoData]) => {
-          if(isoData && isoData.pdfUrl){
-            window._isoUrls[sec+'/'+isoK] = isoData.pdfUrl;
+          if(isoData && isoData.thumbnail){
+            window._isoUrls[sec+'/'+isoK] = isoData.thumbnail;
           }
         });
       });
@@ -2425,24 +2424,7 @@ const SUL_DRIVE_IDS = {
 };
 
 // Dany - náhľady z WeldPro Firebase knižnice
-// Uložené v: isomanager/sections/SEC/ISO_KEY/pdfUrl
-window._isoUrls = {}; // cache: sec/iso -> url
-
-function loadIsoUrlsFromFirebase(){
-  if(!window.DB) return;
-  db.ref('isomanager/sections').on('value', snap => {
-    const data = snap.val()||{};
-    window._isoUrls = {};
-    Object.entries(data).forEach(([sec, isos]) => {
-      Object.entries(isos||{}).forEach(([isoKey, isoData]) => {
-        if(isoData && isoData.pdfUrl){
-          window._isoUrls[sec+'/'+isoKey] = isoData.pdfUrl;
-        }
-      });
-    });
-    renderSb();
-  });
-}
+window._isoUrls = {};
 
 function getIsoJpgUrl(sec, iso) {
   const key = sec + '/' + isoKey(iso);
