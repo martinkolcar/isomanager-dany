@@ -260,13 +260,13 @@ window.loadAdminUsers = function(){
 
   Promise.all([
     window.DBGet('users'),
-    window.WeldproGet('isomanager_projects'),
+    window.WeldproGet('isomanager/sections'),
     window.DBGet('isomanager_users')
   ]).then(function(snaps) {
     var users = snaps[0].val() || {};
     var projs = snaps[1].val() || {};
     var iusers = snaps[2].val() || {};
-    var projList = Object.keys(projs).map(function(id){ return {id:id, name:projs[id].name||id}; });
+    var projList = Object.keys(projs).map(function(id){ return {id:id.toLowerCase(), name:id}; });
 
     var uids = Object.keys(users);
     var countLabel = document.getElementById('usersCountLabel');
@@ -7417,11 +7417,11 @@ function initProjSystem() {
   var adminEmails = ['martinkolcar@iso.sk', 'martin.kolcar@iso.sk', 'martinkolcar@gmail.com'];
   var isAdmin = adminEmails.indexOf(email) !== -1 || email.indexOf('martinkolcar') !== -1;
 
-  window.WeldproGet('isomanager_projects').then(function(snap) {
-    var projs = snap.val() || {};
-
-    var allProjs = Object.keys(projs).map(function(id) {
-      return { id: id, name: projs[id].name, desc: projs[id].desc || '' };
+  window.WeldproGet('isomanager/sections').then(function(snap) {
+    var secs = snap.val() || {};
+    // Každý kľúč v isomanager/sections = jeden projekt
+    var allProjs = Object.keys(secs).map(function(id) {
+      return { id: id.toLowerCase(), name: id, desc: '' };
     });
 
     if (isAdmin) {
@@ -7482,7 +7482,7 @@ function loadProjData(projId) {
 
   Promise.all([
     window.DBGet(base + '/sections'),
-    window.WeldproGet('isomanager/sections/' + projId).catch(function(){ return {val:function(){return null;}}; })
+    window.WeldproGet('isomanager/sections/' + projId.toUpperCase()).catch(function(){ return {val:function(){return null;}}; })
   ]).then(function(snaps) {
     var projSecs = snaps[0].val() || {};
     var weldproSecs = snaps[1].val() || {};
