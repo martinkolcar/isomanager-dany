@@ -220,66 +220,66 @@ window.adminAddUser = async function(){
 };
 
 window.loadAdminUsers = function(){
-  const list = document.getElementById('adminUserList');
+  var list = document.getElementById('adminUserList');
   if (!list) return;
   list.innerHTML = '<div style="color:var(--text2);font-size:12px">Načítavam...</div>';
 
   Promise.all([
     window.DBGet('users'),
-    window.DBGet('isomanager_projects')
+    window.DBGet('isomanager_projects'),
+    window.DBGet('isomanager_users')
   ]).then(function(snaps) {
     var users = snaps[0].val() || {};
     var projs = snaps[1].val() || {};
-    var projList = Object.keys(projs).map(function(id){ return {id:id, name:projs[id].name}; });
+    var iusers = snaps[2].val() || {};
+    var projList = Object.keys(projs).map(function(id){ return {id:id, name:projs[id].name||id}; });
 
-    if (!Object.keys(users).length) {
+    var uids = Object.keys(users);
+    if (!uids.length) {
       list.innerHTML = '<div style="color:var(--text2);font-size:13px;padding:10px">Žiadni používatelia.</div>';
       return;
     }
 
-    // Načítaj iso_users pre prístupy
-    window.DBGet('isomanager_users').then(function(iusnap) {
-      var iusers = iusnap.val() || {};
+    var html = '<table style="width:100%;border-collapse:collapse;font-size:13px">';
+    html += '<tr style="border-bottom:2px solid var(--border);color:var(--text2);font-size:11px;font-weight:700">';
+    html += '<th style="padding:8px 6px;text-align:left">MENO</th>';
+    html += '<th style="padding:8px 6px;text-align:left">EMAIL</th>';
+    html += '<th style="padding:8px 6px;text-align:center">ROLA</th>';
+    html += '<th style="padding:8px 6px;text-align:left">PROJEKTY</th>';
+    html += '<th style="padding:8px 6px"></th></tr>';
 
-      // Header
-      var html = '<table style="width:100%;border-collapse:collapse;font-size:13px">';
-      html += '<tr style="border-bottom:2px solid var(--border);color:var(--text2);font-size:11px;font-weight:700">';
-      html += '<th style="padding:8px 6px;text-align:left">MENO</th><th style="padding:8px 6px;text-align:left">EMAIL</th>';
-      html += '<th style="padding:8px 6px;text-align:left">ROLA</th><th style="padding:8px 6px;text-align:left">PROJEKTY</th><th></th></tr>';
+    uids.forEach(function(uid) {
+      var u = users[uid];
+      var isAdm = (u.email||'').indexOf('martinkolcar') !== -1;
+      var iuProjs = (iusers[uid] && iusers[uid].projects) || [];
+      if (!Array.isArray(iuProjs)) iuProjs = Object.values(iuProjs);
 
-      Object.keys(users).forEach(function(uid) {
-        var u = users[uid];
-        var isAdm = u.email === 'martinkolcar@iso.sk';
-        var iuProjs = (iusers[uid] && iusers[uid].projects) || [];
-        if (!Array.isArray(iuProjs)) iuProjs = [];
+      var projChecks = projList.map(function(p) {
+        var chk = iuProjs.indexOf(p.id) !== -1 ? 'checked' : '';
+        return '<label style="display:flex;align-items:center;gap:4px;font-size:12px;white-space:nowrap;cursor:pointer">' +
+          '<input type="checkbox" ' + chk + ' data-uid="' + uid + '" data-pid="' + p.id + '" onchange="window.admToggleUser(this.dataset.uid,this.dataset.pid,this.checked)"> ' +
+          (p.name) + '</label>';
+      }).join('');
 
-        var projChecks = projList.map(function(p) {
-          var checked = iuProjs.includes(p.id) ? 'checked' : '';
-          return '<label style="display:flex;align-items:center;gap:4px;font-size:12px;white-space:nowrap">' +
-            '<input type="checkbox" ' + checked + ' data-uid="' + uid + '" data-pid="' + p.id + '" onchange="window.admToggleUser(this.dataset.uid,this.dataset.pid,this.checked)"> ' +
-            p.name + '</label>';
-        }).join('');
+      var roleBadge = '<span style="background:' + (isAdm?'#3b82f6':'#6b7280') + ';color:#fff;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700">' + (isAdm?'admin':'user') + '</span>';
+      var delBtn = isAdm ? '' : '<button data-del-uid="' + uid + '" style="background:none;border:1px solid #e57373;color:#e57373;border-radius:4px;padding:2px 8px;cursor:pointer;font-size:11px">🗑</button>';
 
-        var delBtn = isAdm ? '' : '<button data-del-uid="' + uid + '" style="background:none;border:1px solid #e57373;color:#e57373;border-radius:4px;padding:2px 8px;cursor:pointer;font-size:11px">🗑</button>';
-
-        html += '<tr style="border-bottom:1px solid var(--border)">';
-        html += '<td style="padding:8px 6px;font-weight:600;color:var(--text)">' + (u.name||'') + '</td>';
-        html += '<td style="padding:8px 6px;color:var(--text2);font-size:12px">' + (u.email||'') + '</td>';
-        html += '<td style="padding:8px 6px"><span style="background:' + (isAdm?'#3b82f6':'#6b7280') + ';color:#fff;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700">' + (isAdm?'admin':'user') + '</span></td>';
-        html += '<td style="padding:8px 6px">' + (projChecks||'<span style="color:var(--text2);font-size:11px">—</span>') + '</td>';
-        html += '<td style="padding:8px 6px">' + delBtn + '</td>';
-        html += '</tr>';
-      });
-
-      html += '</table>';
-      list.innerHTML = html;
-
-      // Event delegation pre delete
-      list.onclick = function(e) {
-        var btn = e.target.closest('[data-del-uid]');
-        if (btn) window.adminDeleteUser(btn.dataset.delUid);
-      };
+      html += '<tr style="border-bottom:1px solid var(--border)">';
+      html += '<td style="padding:8px 6px;font-weight:600;color:var(--text)">' + (u.name||'') + '</td>';
+      html += '<td style="padding:8px 6px;color:var(--text2);font-size:12px">' + (u.email||'') + '</td>';
+      html += '<td style="padding:8px 6px;text-align:center">' + roleBadge + '</td>';
+      html += '<td style="padding:8px 6px">' + (projChecks || '<span style="color:var(--text2);font-size:11px">—</span>') + '</td>';
+      html += '<td style="padding:8px 6px">' + delBtn + '</td>';
+      html += '</tr>';
     });
+
+    html += '</table>';
+    list.innerHTML = html;
+
+    list.onclick = function(e) {
+      var btn = e.target.closest('[data-del-uid]');
+      if (btn) window.adminDeleteUser(btn.dataset.delUid);
+    };
   });
 };
 
@@ -7396,10 +7396,17 @@ function initProjSystem() {
       // Bežný user vidí len svoje projekty
       window.DBGet('isomanager_users/' + user.uid + '/projects').then(function(us) {
         var allowed = us.val() || [];
-        if (!Array.isArray(allowed)) allowed = [];
-        var myProjs = allProjs.filter(function(p) { return allowed.includes(p.id); });
+        if (!Array.isArray(allowed)) allowed = Object.values(allowed || {});
+        var myProjs = allProjs.filter(function(p) { return allowed.indexOf(p.id) !== -1; });
         if (!myProjs.length) {
-          alert('Nemáte pridelený žiadny projekt. Kontaktujte administrátora.');
+          // Zobraz správu v UI namiesto alert() — menej rušivé
+          var appDiv = document.getElementById('app');
+          if (appDiv) appDiv.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;flex-direction:column;gap:12px;color:var(--text2)">' +
+            '<div style="font-size:48px">🔒</div>' +
+            '<div style="font-size:16px;font-weight:600;color:var(--text)">Nemáte pridelený žiadny projekt</div>' +
+            '<div style="font-size:13px">Kontaktujte administrátora pre pridelenie prístupu.</div>' +
+            '<button onclick="window.doLogout()" style="margin-top:8px;padding:8px 20px;border-radius:6px;border:1px solid var(--border);background:none;cursor:pointer;color:var(--text2);font-size:13px">Odhlásiť sa</button>' +
+            '</div>';
           return;
         }
         renderProjTabs(myProjs, myProjs[0].id);
