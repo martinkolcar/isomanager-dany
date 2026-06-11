@@ -221,23 +221,65 @@ window.adminAddUser = async function(){
 
 window.loadAdminUsers = function(){
   const list = document.getElementById('adminUserList');
-  list.innerHTML = '<div style="color:#567">Načítavam...</div>';
-  window.DBOn('users', snap => {
-    const users = snap.val() || {};
-    if(!Object.keys(users).length){
-      list.innerHTML = '<div style="color:#567">Žiadni užívatelia. Pridaj prvého hore.</div>';
+  if (!list) return;
+  list.innerHTML = '<div style="color:var(--text2);font-size:12px">Načítavam...</div>';
+
+  Promise.all([
+    window.DBGet('users'),
+    window.DBGet('isomanager_projects')
+  ]).then(function(snaps) {
+    var users = snaps[0].val() || {};
+    var projs = snaps[1].val() || {};
+    var projList = Object.keys(projs).map(function(id){ return {id:id, name:projs[id].name}; });
+
+    if (!Object.keys(users).length) {
+      list.innerHTML = '<div style="color:var(--text2);font-size:13px;padding:10px">Žiadni používatelia.</div>';
       return;
     }
-    list.innerHTML = Object.entries(users).map(([uid, u]) => {
-      const isAdmin = u.email === 'martinkolcar@iso.sk';
-      const btn = isAdmin 
-        ? '<span style="color:#4fc3f7;font-size:10px">ADMIN</span>'
-        : '<button onclick="adminDeleteUser(\''+uid+'\')" style="background:#e57373;border:none;border-radius:4px;color:#fff;padding:3px 8px;font-size:11px;cursor:pointer">🗑 Zmazať</button>';
-      return '<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border)">'
-        + '<div><span style="color:var(--text);font-weight:600">' + u.name + '</span>'
-        + '<span style="color:#567;margin-left:8px;font-size:10px">' + u.email + '</span></div>'
-        + btn + '</div>';
-    }).join('');;
+
+    // Načítaj iso_users pre prístupy
+    window.DBGet('isomanager_users').then(function(iusnap) {
+      var iusers = iusnap.val() || {};
+
+      // Header
+      var html = '<table style="width:100%;border-collapse:collapse;font-size:13px">';
+      html += '<tr style="border-bottom:2px solid var(--border);color:var(--text2);font-size:11px;font-weight:700">';
+      html += '<th style="padding:8px 6px;text-align:left">MENO</th><th style="padding:8px 6px;text-align:left">EMAIL</th>';
+      html += '<th style="padding:8px 6px;text-align:left">ROLA</th><th style="padding:8px 6px;text-align:left">PROJEKTY</th><th></th></tr>';
+
+      Object.keys(users).forEach(function(uid) {
+        var u = users[uid];
+        var isAdm = u.email === 'martinkolcar@iso.sk';
+        var iuProjs = (iusers[uid] && iusers[uid].projects) || [];
+        if (!Array.isArray(iuProjs)) iuProjs = [];
+
+        var projChecks = projList.map(function(p) {
+          var checked = iuProjs.includes(p.id) ? 'checked' : '';
+          return '<label style="display:flex;align-items:center;gap:4px;font-size:12px;white-space:nowrap">' +
+            '<input type="checkbox" ' + checked + ' data-uid="' + uid + '" data-pid="' + p.id + '" onchange="window.admToggleUser(this.dataset.uid,this.dataset.pid,this.checked)"> ' +
+            p.name + '</label>';
+        }).join('');
+
+        var delBtn = isAdm ? '' : '<button data-del-uid="' + uid + '" style="background:none;border:1px solid #e57373;color:#e57373;border-radius:4px;padding:2px 8px;cursor:pointer;font-size:11px">🗑</button>';
+
+        html += '<tr style="border-bottom:1px solid var(--border)">';
+        html += '<td style="padding:8px 6px;font-weight:600;color:var(--text)">' + (u.name||'') + '</td>';
+        html += '<td style="padding:8px 6px;color:var(--text2);font-size:12px">' + (u.email||'') + '</td>';
+        html += '<td style="padding:8px 6px"><span style="background:' + (isAdm?'#3b82f6':'#6b7280') + ';color:#fff;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700">' + (isAdm?'admin':'user') + '</span></td>';
+        html += '<td style="padding:8px 6px">' + (projChecks||'<span style="color:var(--text2);font-size:11px">—</span>') + '</td>';
+        html += '<td style="padding:8px 6px">' + delBtn + '</td>';
+        html += '</tr>';
+      });
+
+      html += '</table>';
+      list.innerHTML = html;
+
+      // Event delegation pre delete
+      list.onclick = function(e) {
+        var btn = e.target.closest('[data-del-uid]');
+        if (btn) window.adminDeleteUser(btn.dataset.delUid);
+      };
+    });
   });
 };
 
@@ -6958,11 +7000,11 @@ window.scanSearchFilter = function(q){
       <button class="btn btn-blue" style="width:100%" onclick="adminAddUser()">➕ Pridať užívateľa</button>
       <div id="adminMsg" style="font-size:12px;margin-top:8px;min-height:18px;font-family:monospace;color:var(--green)"></div>
       <hr style="margin:16px 0;border-color:var(--border)">
-      <h4 style="margin:0 0 12px;color:var(--text)">Existujúci užívatelia</h4>
-      <div id="adminUserList" style="font-size:12px;font-family:monospace;color:var(--text2)">Načítavam...</div>
-      <div style="margin-top:16px;padding-top:12px;border-top:1px solid var(--border);text-align:center">
-        <a href="https://console.firebase.google.com/project/export-app-425db/authentication/users" target="_blank" style="color:#4fc3f7;font-size:12px;text-decoration:none">🔗 Otvoriť Firebase Authentication Console</a>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <h4 style="margin:0;color:var(--text)">Používatelia</h4>
+        <a href="https://console.firebase.google.com/project/weldpro-dany/authentication/users" target="_blank" style="font-size:11px;color:#4fc3f7;text-decoration:none">🔗 Firebase Auth konzola</a>
       </div>
+      <div id="adminUserList">Načítavam...</div>
       <div style="margin-top:10px;text-align:center">
         <button onclick="runFixBaliky()" style="background:#e57373;color:#fff;border:none;border-radius:6px;padding:8px 16px;font-size:12px;cursor:pointer">🔧 Opraviť balíky bez nakladkaId</button>
         <div id="fixBalikLog" style="font-size:11px;font-family:monospace;margin-top:6px;color:var(--text2)"></div>
@@ -7342,8 +7384,8 @@ function initProjSystem() {
     });
 
     if (isAdmin) {
+      // Admin vidí všetky projekty
       if (!allProjs.length) {
-        // Otvor admin panel
         window.openAdminPanel();
         setTimeout(function() { admSwitchTab('projects'); }, 150);
         return;
@@ -7351,18 +7393,13 @@ function initProjSystem() {
       renderProjTabs(allProjs, allProjs[0].id);
       activateProject(allProjs[0]);
     } else {
+      // Bežný user vidí len svoje projekty
       window.DBGet('isomanager_users/' + user.uid + '/projects').then(function(us) {
         var allowed = us.val() || [];
         if (!Array.isArray(allowed)) allowed = [];
         var myProjs = allProjs.filter(function(p) { return allowed.includes(p.id); });
         if (!myProjs.length) {
-          // Ak nemá pridelené ale projekty existujú, zobraz všetky (fallback)
-          if (allProjs.length) {
-            renderProjTabs(allProjs, allProjs[0].id);
-            activateProject(allProjs[0]);
-          } else {
-            alert('Nemáte pridelený žiadny projekt.');
-          }
+          alert('Nemáte pridelený žiadny projekt. Kontaktujte administrátora.');
           return;
         }
         renderProjTabs(myProjs, myProjs[0].id);
@@ -7396,27 +7433,7 @@ window.switchProj = function(idx) {
 
 function activateProject(proj) {
   window._currentProject = proj;
-  // Pre dany projekt - ak máme cache, aplikuj hneď
-  if (proj.id === 'dany' && window._legacyIsoData && Object.keys(window._legacyIsoData).length) {
-    var data = window._legacyIsoData;
-    window.SECTIONS = Object.keys(data).sort();
-    window.ISOMETRIES_DATA = {};
-    window._isoUrls = {};
-    window.SECTIONS.forEach(function(sec) {
-      var isos = data[sec] || {};
-      window.ISOMETRIES_DATA[sec] = Object.keys(isos).map(function(k){ return isos[k].name||k; });
-      Object.keys(isos).forEach(function(isoK){
-        var d = isos[isoK];
-        if(d && d.thumbnailUrl) window._isoUrls[sec+'/'+isoK] = d.thumbnailUrl;
-        else if(d && d.thumbnail) window._isoUrls[sec+'/'+isoK] = d.thumbnail;
-      });
-    });
-    if(typeof renderSecTabs === 'function') renderSecTabs();
-    if(window.SECTIONS.length > 0 && typeof switchSec === 'function') switchSec(window.SECTIONS[0]);
-    else if(typeof renderSb === 'function') renderSb();
-  } else {
-    loadProjData(proj.id);
-  }
+  loadProjData(proj.id);
 }
 
 function loadProjData(projId) {
@@ -7486,6 +7503,7 @@ window.admSwitchTab = function(tab) {
     if (body) body.style.display = t === tab ? 'block' : 'none';
   });
   if (tab === 'projects') admLoadProjects();
+  if (tab === 'users') { if (typeof window.loadAdminUsers === 'function') window.loadAdminUsers(); }
 };
 
 window.admLoadProjects = function() {
