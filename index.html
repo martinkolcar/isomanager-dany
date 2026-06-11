@@ -2503,7 +2503,7 @@ html,body{height:100%;overflow:hidden;font-family:'Segoe UI',system-ui,sans-seri
 .iso-modal-close:hover{opacity:1}
 
 /* SECTION TABS */
-.sec-tabs{display:flex;gap:2px;padding:8px 12px;background:var(--surface2);border-bottom:1px solid var(--border);flex-shrink:0;overflow-x:auto}
+.sec-tabs{display:flex;gap:2px;padding:8px 12px;background:var(--surface2);border-bottom:1px solid var(--border);flex-shrink:0;overflow-x:auto;flex-wrap:wrap}
 .sec-tab{padding:4px 12px;font-size:11px;font-weight:700;cursor:pointer;border-radius:20px;color:var(--text2);background:transparent;border:1px solid transparent;white-space:nowrap;letter-spacing:.3px;transition:all .12s}
 .sec-tab:hover{background:var(--surface);color:var(--text)}
 .sec-tab.active{background:var(--blue);color:#fff;border-color:var(--blue)}
@@ -4700,25 +4700,33 @@ function renderSecTabs(){
   const container = document.getElementById('secTabsContainer');
   if(!container) return;
 
+  // Projekt taby - vždy navrchu, horizontálne
   var projHtml = '';
-  if (window._projTabData && window._projTabData.length) {
-    projHtml = '<div id="proj-tabs-inner" style="display:flex;flex-wrap:wrap;gap:3px;width:100%;margin-bottom:4px;padding-bottom:4px;border-bottom:1px solid var(--border)">' +
-      window._projTabData.map(function(p, idx) {
-        var active = p.id === window._activeProjId;
-        return '<div onclick="switchProj(' + idx + ')" style="padding:3px 10px;font-size:11px;font-weight:700;cursor:pointer;border-radius:4px;' +
-          (active ? 'background:#1a1a2e;color:#fff;' : 'color:var(--text2);border:1px solid var(--border);') + '">' + p.name + '</div>';
-      }).join('') + '</div>';
+  if (window._projTabData && window._projTabData.length > 0) {
+    projHtml = window._projTabData.map(function(p, idx) {
+      var active = p.id === window._activeProjId;
+      return '<div onclick="switchProj(' + idx + ')" class="sec-tab' + (active ? ' active' : '') + '" style="background:' +
+        (active ? '#1a1a2e' : 'transparent') + ';color:' + (active ? '#fff' : 'var(--text2)') + ';border-color:' +
+        (active ? '#1a1a2e' : 'var(--border)') + ';">' + p.name + '</div>';
+    }).join('');
   }
 
-  if(!window.SECTIONS || window.SECTIONS.length === 0){
-    container.innerHTML = projHtml + '<div style="color:var(--text2);font-size:12px;padding:4px 8px">Žiadne sekcie</div>';
-    return;
+  // Sekcie
+  var secHtml = '';
+  if(window.SECTIONS && window.SECTIONS.length > 0){
+    secHtml = window.SECTIONS.map(function(sec) {
+      var active = sec === curSec;
+      return '<div class="sec-tab' + (active ? ' active' : '') + '" onclick="switchSec(\'' + sec + '\',this)">' + sec + '</div>';
+    }).join('');
   }
-  container.innerHTML = projHtml + window.SECTIONS.map(function(sec) {
-    var active = sec === window.curSec;
-    return '<div class="sec-tab' + (active?' active':'') + '" onclick="switchSec(\'' + sec + '\',this)">' + sec + '</div>';
-  }).join('');
+
+  container.innerHTML = projHtml + secHtml;
+
+  if(!secHtml) {
+    container.innerHTML += '<div style="color:var(--text2);font-size:11px;padding:4px 8px;width:100%">Žiadne sekcie</div>';
+  }
 }
+
 
 
 function initApp(){
