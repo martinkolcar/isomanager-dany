@@ -4699,14 +4699,27 @@ function startApp(){
 function renderSecTabs(){
   const container = document.getElementById('secTabsContainer');
   if(!container) return;
-  if(window.SECTIONS.length === 0){
-    container.innerHTML = '<div style="color:var(--text2);font-size:12px;padding:4px 8px">Žiadne sekcie — vytvorte projekt vo WeldPro Dany</div>';
+
+  var projHtml = '';
+  if (window._projTabData && window._projTabData.length) {
+    projHtml = '<div id="proj-tabs-inner" style="display:flex;flex-wrap:wrap;gap:3px;width:100%;margin-bottom:4px;padding-bottom:4px;border-bottom:1px solid var(--border)">' +
+      window._projTabData.map(function(p, idx) {
+        var active = p.id === window._activeProjId;
+        return '<div onclick="switchProj(' + idx + ')" style="padding:3px 10px;font-size:11px;font-weight:700;cursor:pointer;border-radius:4px;' +
+          (active ? 'background:#1a1a2e;color:#fff;' : 'color:var(--text2);border:1px solid var(--border);') + '">' + p.name + '</div>';
+      }).join('') + '</div>';
+  }
+
+  if(!window.SECTIONS || window.SECTIONS.length === 0){
+    container.innerHTML = projHtml + '<div style="color:var(--text2);font-size:12px;padding:4px 8px">Žiadne sekcie</div>';
     return;
   }
-  container.innerHTML = window.SECTIONS.map((sec, i) =>
-    `<div class="sec-tab${i===0?' active':''}" onclick="switchSec('${sec}',this)">${sec}</div>`
-  ).join('');
+  container.innerHTML = projHtml + window.SECTIONS.map(function(sec) {
+    var active = sec === window.curSec;
+    return '<div class="sec-tab' + (active?' active':'') + '" onclick="switchSec(\'' + sec + '\',this)">' + sec + '</div>';
+  }).join('');
 }
+
 
 function initApp(){
   if(!window.DB){ window.addEventListener('fbReady', initApp, {once:true}); return; }
@@ -7355,34 +7368,9 @@ function initProjSystem() {
 function renderProjTabs(projs, activeId) {
   window._projTabData = projs;
   window._activeProjId = activeId;
-  var c = document.getElementById('secTabsContainer');
-  if (!c) return;
-  // Vykresli projekt taby + sec taby dokopy
-  var projHtml = projs.map(function(p, idx) {
-    var active = p.id === activeId;
-    return '<div onclick="switchProj(' + idx + ')" style="padding:3px 10px;font-size:11px;font-weight:700;cursor:pointer;border-radius:4px;margin-bottom:2px;' +
-      (active ? 'background:#1a1a2e;color:#fff;' : 'color:var(--text2);border:1px solid var(--border);') + '">' + p.name + '</div>';
-  }).join('');
-  // Existujúce sec taby zachovaj
-  var existing = c.querySelector('#sec-tabs-inner');
-  if (!existing) {
-    var inner = document.createElement('div');
-    inner.id = 'sec-tabs-inner';
-    inner.style.cssText = 'display:contents';
-    // Presuň existujúci obsah
-    while (c.firstChild) inner.appendChild(c.firstChild);
-    c.appendChild(inner);
-  }
-  // Pridaj/aktualizuj projekt taby
-  var projDiv = document.getElementById('proj-tabs-inner');
-  if (!projDiv) {
-    projDiv = document.createElement('div');
-    projDiv.id = 'proj-tabs-inner';
-    projDiv.style.cssText = 'display:flex;flex-wrap:wrap;gap:3px;width:100%;margin-bottom:4px;';
-    c.insertBefore(projDiv, c.firstChild);
-  }
-  projDiv.innerHTML = projHtml;
+  if (typeof renderSecTabs === 'function') renderSecTabs();
 }
+
 
 
 window.switchProj = function(idx) {
