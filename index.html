@@ -193,6 +193,8 @@ window.openAdminPanel = function(){
 window.closeAdminPanel = function(){
   document.getElementById('adminPanel').style.display='none';
   document.getElementById('adminPanel').style.cssText='display:none';
+  // Refresh projekt taby
+  if (typeof loadProjectsAndShow === 'function') loadProjectsAndShow();
 };
 
 window.adminAddUser = async function(){
@@ -2788,7 +2790,7 @@ tr:hover td{background:var(--surface2)}
     <!-- SEC TABS + SIDEBAR wrapper -->
     <div style="display:flex;flex-direction:column;width:230px;border-right:1px solid var(--border);background:var(--surface)">
       <!-- PROJEKT TABY -->
-      <div id="projTabsContainer" style="display:flex;gap:2px;padding:6px 8px;background:#1a1a2e;flex-wrap:wrap;min-height:32px"></div>
+      <div id="projTabsContainer" style="display:none;gap:2px;padding:6px 8px;background:#1a1a2e;flex-wrap:wrap;min-height:32px"></div>
       <div class="sec-tabs" id="secTabsContainer" style="padding:6px 8px;gap:4px;flex-wrap:wrap">
         <div style="color:var(--text2);font-size:12px;padding:4px 8px">Načítavam sekcie...</div>
       </div>
@@ -7416,9 +7418,10 @@ function renderProjTabs(projs, activeId) {
   var c = document.getElementById('projTabsContainer');
   if (!c) return;
   if (!projs.length) {
-    c.innerHTML = '<div style="color:#aaa;font-size:11px;padding:4px">Žiadne projekty</div>';
+    c.style.display = 'none';
     return;
   }
+  c.style.display = 'flex';
   c.innerHTML = projs.map(function(p) {
     var isActive = p.id === activeId;
     return '<div onclick="switchProject(\''+p.id+'\',\''+p.name+'\')" style="padding:3px 10px;font-size:11px;font-weight:700;cursor:pointer;border-radius:20px;white-space:nowrap;' +
@@ -7440,6 +7443,7 @@ function loadProjectsAndShow() {
   if (!window.DB) { setTimeout(loadProjectsAndShow, 500); return; }
   var user = window._currentUser;
   if (!user || !user.email) { setTimeout(loadProjectsAndShow, 300); return; }
+  if (!document.getElementById('projTabsContainer')) { setTimeout(loadProjectsAndShow, 200); return; }
   var isAdmin = user.email === 'martinkolcar@iso.sk';
 
   window.DBGet('isomanager_projects').then(function(snap) {
