@@ -7576,10 +7576,12 @@ function loadProjData(projId) {
           });
         });
       }
-      // isoKey() konvertuje bodky na podčiarkovníky — uložíme tak ako to očakáva getSpools
+      // getSpools hľadá spools['DANY/G1_1_d_p3-100_1z3'] ako objekt {SP1:..., SP2:...}
       var isoKeyFormatted = isoKeyNorm.replace(/[^a-zA-Z0-9_\-]/g, '_');
+      var key = projIdUpper + '/' + isoKeyFormatted;
+      if (!window.spools[key]) window.spools[key] = {};
       Object.keys(isoSpools).forEach(function(spoolKey) {
-        window.spools[isoKeyFormatted + '/' + spoolKey] = isoSpools[spoolKey] || {};
+        window.spools[key][spoolKey] = isoSpools[spoolKey] || {};
       });
     });
     if (typeof renderSb === 'function') renderSb();
