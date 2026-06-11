@@ -7338,6 +7338,13 @@ function initProjSystem() {
 
   window.DBGet('isomanager_projects').then(function(snap) {
     var projs = snap.val() || {};
+
+    // Ak DANY projekt neexistuje, vytvor ho automaticky
+    if (!projs['dany']) {
+      window.DBSet('isomanager_projects/dany', { name: 'DANY', desc: 'Hlavný projekt', created: Date.now() });
+      projs['dany'] = { name: 'DANY' };
+    }
+
     var allProjs = Object.keys(projs).map(function(id) {
       return { id: id, name: projs[id].name, desc: projs[id].desc || '' };
     });
@@ -7407,7 +7414,8 @@ function loadProjData(projId) {
   ]).then(function(snaps) {
     var projSecs = snaps[0].val() || {};
     var legacySecs = snaps[1].val() || {};
-    var merged = Object.assign({}, legacySecs, projSecs);
+    // Všetky projekty čítajú z project_data, DANY projekt tiež z legacy WeldPro cesty
+    var merged = Object.assign({}, projId === 'dany' ? legacySecs : {}, projSecs);
 
     window._isoUrls = {};
     window.SECTIONS = Object.keys(merged).filter(function(k) { return k !== '_created'; }).sort();
@@ -7537,6 +7545,10 @@ window.admCreateProject = function() {
     var msg = document.getElementById('adm-proj-msg');
     if (msg) { msg.textContent = '✅ Projekt "' + name + '" vytvorený (ID: ' + id + ')'; setTimeout(function() { msg.textContent = ''; }, 4000); }
     window.admLoadProjects();
+    // Hneď pridaj tab bez čakania na refresh
+    if (!window._projTabData) window._projTabData = [];
+    window._projTabData.push({ id: id, name: name });
+    renderProjTabs(window._projTabData, window._activeProjId || window._projTabData[0].id);
   });
 };
 
