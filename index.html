@@ -7576,8 +7576,10 @@ function loadProjData(projId) {
           });
         });
       }
+      // isoKey() konvertuje bodky na podčiarkovníky — uložíme tak ako to očakáva getSpools
+      var isoKeyFormatted = isoKeyNorm.replace(/[^a-zA-Z0-9_\-]/g, '_');
       Object.keys(isoSpools).forEach(function(spoolKey) {
-        window.spools[isoKeyNorm + '/' + spoolKey] = isoSpools[spoolKey] || {};
+        window.spools[isoKeyFormatted + '/' + spoolKey] = isoSpools[spoolKey] || {};
       });
     });
     if (typeof renderSb === 'function') renderSb();
