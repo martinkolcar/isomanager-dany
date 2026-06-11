@@ -180,6 +180,11 @@ window.runFixBaliky = function(){
 };
 
 window.openAdminPanel = function(){
+  // Otvor nový iso admin panel namiesto starého
+  if (typeof openIsoAdminPanel === 'function') {
+    openIsoAdminPanel();
+    return;
+  }
   const panel = document.getElementById('adminPanel');
   panel.style.cssText='display:flex;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9998;align-items:center;justify-content:center';
   loadAdminUsers();
@@ -7495,9 +7500,13 @@ function loadProjectData() {
 }
 
 // ═══ ADMIN PANEL ═══
-function openAdminPanel() {
+function openIsoAdminPanel() {
   document.getElementById('iso-admin-overlay').style.display = 'flex';
   switchAdmTab('projects');
+}
+
+function openAdminPanel() {
+  openIsoAdminPanel();
 }
 
 function switchAdmTab(tab) {
