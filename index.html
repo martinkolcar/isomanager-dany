@@ -7299,71 +7299,206 @@ document.getElementById('import-iso-overlay').addEventListener('click', function
   if (e.target === this) closeImportIsoModal();
 });
 </script>
-<script>
-// ═══ PROJEKT SYSTÉM — čistá verzia ═══
-window._currentProject = null;
 
-// Tab switcher pre admin panel
-window.admSwitchTab = function(tab) {
-  ['users','projects'].forEach(function(t) {
-    var btn = document.getElementById('adm-tab-'+t);
-    var body = document.getElementById('adm-body-'+t);
-    if (btn) {
-      btn.style.cssText = 'padding:9px 18px;border:none;background:none;cursor:pointer;font-size:13px;border-bottom:2px solid ' +
-        (t===tab ? '#4f7cff;color:#4f7cff;font-weight:700' : 'transparent;color:var(--text2)');
+<script>
+// ═══ PROJEKT SYSTÉM ═══
+// Spustí sa až keď je DOM ready a všetky scripty načítané
+
+document.addEventListener('DOMContentLoaded', function() {
+  // Počkaj na Firebase auth
+  var authCheck = setInterval(function() {
+    if (window._currentUser && window.DB) {
+      clearInterval(authCheck);
+      initProjSystem();
     }
-    if (body) body.style.display = t===tab ? 'block' : 'none';
+  }, 200);
+});
+
+function initProjSystem() {
+  var user = window._currentUser;
+  var isAdmin = user.email === 'martinkolcar@iso.sk';
+
+  window.DBGet('isomanager_projects').then(function(snap) {
+    var projs = snap.val() || {};
+    var allProjs = Object.keys(projs).map(function(id) {
+      return { id: id, name: projs[id].name, desc: projs[id].desc || '' };
+    });
+
+    if (isAdmin) {
+      if (!allProjs.length) {
+        // Otvor admin panel
+        window.openAdminPanel();
+        setTimeout(function() { admSwitchTab('projects'); }, 150);
+        return;
+      }
+      renderProjTabs(allProjs, allProjs[0].id);
+      activateProject(allProjs[0]);
+    } else {
+      window.DBGet('isomanager_users/' + user.uid + '/projects').then(function(us) {
+        var allowed = us.val() || [];
+        if (!Array.isArray(allowed)) allowed = [];
+        var myProjs = allProjs.filter(function(p) { return allowed.includes(p.id); });
+        if (!myProjs.length) {
+          alert('Nemáte pridelený žiadny projekt.');
+          return;
+        }
+        renderProjTabs(myProjs, myProjs[0].id);
+        activateProject(myProjs[0]);
+      });
+    }
+  });
+}
+
+function renderProjTabs(projs, activeId) {
+  var c = document.getElementById('projTabsContainer');
+  if (!c) return;
+  c.style.display = 'flex';
+  window._projTabData = projs;
+  c.innerHTML = projs.map(function(p, idx) {
+    var active = p.id === activeId;
+    var bg = active ? 'background:#4f7cff;color:#fff;' : 'color:#aaa;background:rgba(255,255,255,0.1);';
+    return '<div onclick="switchProj(' + idx + ')" style="padding:4px 12px;font-size:11px;font-weight:700;cursor:pointer;border-radius:20px;' + bg + '">' + p.name + '</div>';
+  }).join('');
+}
+
+window.switchProj = function(idx) {
+  var p = window._projTabData && window._projTabData[idx];
+  if (!p) return;
+  window.DBGet('isomanager_projects').then(function(snap) {
+    var projs = Object.keys(snap.val() || {}).map(function(k) {
+      return { id: k, name: snap.val()[k].name };
+    });
+    renderProjTabs(projs, p.id);
+  });
+  activateProject(p);
+};
+
+function activateProject(proj) {
+  window._currentProject = proj;
+  loadProjData(proj.id);
+}
+
+function loadProjData(projId) {
+  var base = 'isomanager_project_data/' + projId;
+
+  Promise.all([
+    window.DBGet(base + '/sections'),
+    window.DBGet('isomanager/sections')
+  ]).then(function(snaps) {
+    var projSecs = snaps[0].val() || {};
+    var legacySecs = snaps[1].val() || {};
+    var merged = Object.assign({}, legacySecs, projSecs);
+
+    window._isoUrls = {};
+    window.SECTIONS = Object.keys(merged).filter(function(k) { return k !== '_created'; }).sort();
+    window.ISOMETRIES_DATA = {};
+    window._isoData = merged;
+
+    window.SECTIONS.forEach(function(sec) {
+      var isos = merged[sec] || {};
+      window.ISOMETRIES_DATA[sec] = Object.keys(isos)
+        .filter(function(k) { return k !== '_created'; })
+        .map(function(k) { return isos[k].name || k; });
+      Object.keys(isos).forEach(function(isoK) {
+        var d = isos[isoK];
+        if (!d) return;
+        if (d.thumbnailUrl) window._isoUrls[sec + '/' + isoK] = d.thumbnailUrl;
+        else if (d.thumbnail) window._isoUrls[sec + '/' + isoK] = d.thumbnail;
+      });
+    });
+
+    if (typeof renderSecTabs === 'function') renderSecTabs();
+    if (window.SECTIONS.length > 0 && typeof switchSec === 'function') switchSec(window.SECTIONS[0]);
+    else if (typeof renderSb === 'function') renderSb();
+  });
+
+  // Live spooly
+  dbOnValue(dbRef(window.DB, 'spools'), function(snap) {
+    var d = snap.val() || {};
+    window.spools = window.spools || {};
+    Object.keys(d).forEach(function(sec) {
+      Object.keys(d[sec] || {}).forEach(function(k) {
+        window.spools[sec + '/' + k] = d[sec][k] || {};
+      });
+    });
+    if (typeof renderSb === 'function') renderSb();
+    if (typeof renderPrehlad === 'function') renderPrehlad();
+    if (typeof curIso !== 'undefined' && curIso && typeof renderSpoolTable === 'function') renderSpoolTable();
+  });
+}
+
+// Admin panel — taby
+window.admSwitchTab = function(tab) {
+  ['users', 'projects'].forEach(function(t) {
+    var btn = document.getElementById('adm-tab-' + t);
+    var body = document.getElementById('adm-body-' + t);
+    if (btn) btn.style.cssText = 'padding:9px 18px;border:none;background:none;cursor:pointer;font-size:13px;border-bottom:2px solid ' +
+      (t === tab ? '#4f7cff;color:#4f7cff;font-weight:700' : 'transparent;color:var(--text2)');
+    if (body) body.style.display = t === tab ? 'block' : 'none';
   });
   if (tab === 'projects') admLoadProjects();
-}
+};
 
 window.admLoadProjects = function() {
   window.DBGet('isomanager_projects').then(function(snap) {
     var projs = snap.val() || {};
+    var projKeys = Object.keys(projs);
     var list = document.getElementById('adm-proj-list');
     if (!list) return;
 
-    if (!Object.keys(projs).length) {
+    if (!projKeys.length) {
       list.innerHTML = '<div style="color:var(--text2);font-size:13px">Žiadne projekty.</div>';
     } else {
-      list.innerHTML = Object.entries(projs).map(function(kv) { var id=kv[0],p=kv[1];
-        return '<div style="border:1px solid var(--border);border-radius:6px;padding:10px 12px;margin-bottom:6px;display:flex;align-items:center;gap:10px;background:var(--surface)">' +
-          '<div style="flex:1"><strong style="color:var(--text)">' + p.name + '</strong>' +
-          (p.desc ? '<span style="color:var(--text2);font-size:12px"> — ' + p.desc + '</span>' : '') +
+      list.innerHTML = projKeys.map(function(id) {
+        var p = projs[id];
+        return '<div style="border:1px solid var(--border);border-radius:6px;padding:10px 12px;margin-bottom:6px;display:flex;align-items:center;gap:10px;background:var(--surface)" data-proj-id="' + id + '">' +
+          '<div style="flex:1"><strong>' + p.name + '</strong>' +
+          (p.desc ? ' <span style="color:var(--text2);font-size:12px">— ' + p.desc + '</span>' : '') +
           '<div style="font-size:11px;color:var(--text2);font-family:monospace">ID: ' + id + '</div></div>' +
-          '<button onclick="admDeleteProject(\'' + id + '\')" style="padding:3px 8px;border:1px solid #e57373;color:#e57373;background:none;border-radius:4px;cursor:pointer;font-size:11px">🗑</button>' +
+          '<button data-del-proj="' + id + '" style="padding:3px 8px;border:1px solid #e57373;color:#e57373;background:none;border-radius:4px;cursor:pointer">🗑</button>' +
           '</div>';
       }).join('');
+
+      // Event delegation pre delete
+      list.onclick = function(e) {
+        var btn = e.target.closest('[data-del-proj]');
+        if (btn) window.admDeleteProject(btn.dataset.delProj);
+      };
     }
 
-    // Načítaj users pre projekt prístup
+    // Prístup používateľov
     window.DBGet('users').then(function(usnap) {
       var users = usnap.val() || {};
-      var projList = Object.entries(projs).map(function(kv) { var id=kv[0],p=kv[1]; return {id, name:p.name}; });
+      var projList = projKeys.map(function(id) { return { id: id, name: projs[id].name }; });
       var pu = document.getElementById('adm-proj-users');
       if (!pu) return;
-      if (!Object.keys(users).length) { pu.innerHTML = '<div style="color:var(--text2);font-size:12px">Žiadni používatelia.</div>'; return; }
 
-      pu.innerHTML = Object.entries(users).map(function(kvU) { var uid=kvU[0],u=kvU[1];
-        var checkboxes = projList.map(function(p) {
+      var uids = Object.keys(users);
+      if (!uids.length) {
+        pu.innerHTML = '<div style="color:var(--text2);font-size:12px">Žiadni používatelia.</div>';
+        return;
+      }
+
+      pu.innerHTML = uids.map(function(uid) {
+        var u = users[uid];
+        var checks = projList.map(function(p) {
           return '<label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer;margin-bottom:3px">' +
-            '<input type="checkbox" id="upchk-' + uid + '-' + p.id + '" onchange="admToggleUserProject(\'' + uid + '\',\'' + p.id + '\',this.checked)"> ' + p.name + '</label>';
+            '<input type="checkbox" data-uid="' + uid + '" data-pid="' + p.id + '" onchange="window.admToggleUser(this.dataset.uid,this.dataset.pid,this.checked)"> ' +
+            p.name + '</label>';
         }).join('');
-
         return '<div style="border:1px solid var(--border);border-radius:6px;padding:10px 12px;margin-bottom:6px;display:flex;align-items:flex-start;gap:10px;background:var(--surface)">' +
-          '<div style="flex:1"><strong>' + (u.name||'') + '</strong> <span style="color:var(--text2);font-size:11px">' + (u.email||'') + '</span></div>' +
-          '<div>' + (checkboxes || '<span style="color:var(--text2);font-size:11px">—</span>') + '</div>' +
-          '</div>';
+          '<div style="flex:1"><strong>' + (u.name || '') + '</strong> <span style="color:var(--text2);font-size:11px">' + (u.email || '') + '</span></div>' +
+          '<div>' + checks + '</div></div>';
       }).join('');
 
       // Načítaj existujúce prístupy
       window.DBGet('isomanager_users').then(function(iusnap) {
-        var iusers = iusnap.val() || {};
-        Object.entries(iusers).forEach(function(kvI) { var uid=kvI[0],iu=kvI[1];
-          var projs = iu.projects || [];
-          projs.forEach(function(pid) {
-            var chk = document.getElementById('upchk-' + uid + '-' + pid);
-            if (chk) chk.checked = true;
+        var iu = iusnap.val() || {};
+        Object.keys(iu).forEach(function(uid) {
+          var ps = iu[uid].projects || [];
+          ps.forEach(function(pid) {
+            var el = document.querySelector('[data-uid="' + uid + '"][data-pid="' + pid + '"]');
+            if (el) el.checked = true;
           });
         });
       });
@@ -7372,242 +7507,63 @@ window.admLoadProjects = function() {
 }
 
 window.admCreateProject = function() {
-  var name = (document.getElementById('new-proj-name').value||'').trim();
-  var desc = (document.getElementById('new-proj-desc').value||'').trim();
-  if (!name) { alert('Zadajte názov projektu'); return; }
-  var id = name.toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9\-]/g,'').substring(0,30);
-  var msg = document.getElementById('adm-proj-msg');
+  var name = (document.getElementById('new-proj-name').value || '').trim();
+  var desc = (document.getElementById('new-proj-desc').value || '').trim();
+  if (!name) { alert('Zadajte názov'); return; }
+  var id = name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9\-]/g, '').substring(0, 30);
   window.DBSet('isomanager_projects/' + id, { name: name, desc: desc, created: Date.now() }).then(function() {
     document.getElementById('new-proj-name').value = '';
     document.getElementById('new-proj-desc').value = '';
-    if (msg) { msg.textContent = '✅ Projekt "' + name + '" vytvorený (ID: ' + id + ')'; setTimeout(function(){ msg.textContent=''; }, 4000); }
-    admLoadProjects();
+    var msg = document.getElementById('adm-proj-msg');
+    if (msg) { msg.textContent = '✅ Projekt "' + name + '" vytvorený (ID: ' + id + ')'; setTimeout(function() { msg.textContent = ''; }, 4000); }
+    window.admLoadProjects();
   });
-}
+};
 
 window.admDeleteProject = function(id) {
   if (!confirm('Vymazať projekt "' + id + '"?')) return;
   window.DBRemove('isomanager_projects/' + id);
   window.DBRemove('isomanager_project_data/' + id);
-  admLoadProjects();
-}
-
-window.admToggleUserProject = function(uid, projId, add) {
-  window.DBGet('isomanager_users/' + uid + '/projects').then(function(snap) {
-    var projs = snap.val() || [];
-    if (!Array.isArray(projs)) projs = [];
-    if (add && !projs.includes(projId)) projs.push(projId);
-    if (!add) projs = projs.filter(function(p) { return p !== projId; });
-    window.DBSet('isomanager_users/' + uid + '/projects', projs);
-  });
-}
-
-// Otvorenie admin panelu - prepíše starý openAdminPanel
-window.openAdminPanel = function() {
-  var panel = document.getElementById('adminPanel');
-  if (panel) {
-    panel.style.display = 'flex';
-    panel.classList.add('open');
-    admSwitchTab('users');
-    // Načítaj users (existujúca funkcia)
-    if (typeof window.adminLoadUsers === 'function') window.adminLoadUsers();
-  }
+  window.admLoadProjects();
 };
 
-// Projekt výber
-window.renderProjTabs = function(projs, activeId) {
-  var c = document.getElementById('projTabsContainer');
-  if (!c) return;
-  if (!projs.length) {
-    c.style.display = 'none';
-    return;
-  }
-  c.style.display = 'flex';
-  c.innerHTML = projs.map(function(p) {
-    var isActive = p.id === activeId;
-    return '<div onclick="switchProject(\''+p.id+'\',\''+p.name+'\')" style="padding:3px 10px;font-size:11px;font-weight:700;cursor:pointer;border-radius:20px;white-space:nowrap;' +
-      (isActive ? 'background:#4f7cff;color:#fff;' : 'background:rgba(255,255,255,0.1);color:#aaa;') + '">' + p.name + '</div>';
-  }).join('');
-}
-
-window.switchProject = function(id, name) {
-  window._currentProject = {id: id, name: name};
-  // Refresh proj tabs
-  window.DBGet('isomanager_projects').then(function(snap) {
-    var projs = Object.entries(snap.val()||{}).map(function(kv){ return {id:kv[0],name:kv[1].name}; });
-    renderProjTabs(projs, id);
+window.admToggleUser = function(uid, projId, add) {
+  window.DBGet('isomanager_users/' + uid + '/projects').then(function(snap) {
+    var ps = snap.val() || [];
+    if (!Array.isArray(ps)) ps = [];
+    if (add && !ps.includes(projId)) ps.push(projId);
+    if (!add) ps = ps.filter(function(p) { return p !== projId; });
+    window.DBSet('isomanager_users/' + uid + '/projects', ps);
   });
-  loadProjectData();
-}
+};
 
-window.loadProjectsAndShow = function() {
-  if (!window.DB) { setTimeout(loadProjectsAndShow, 500); return; }
-  var user = window._currentUser;
-  if (!user || !user.email) { setTimeout(loadProjectsAndShow, 300); return; }
-  if (!document.getElementById('projTabsContainer')) { setTimeout(loadProjectsAndShow, 200); return; }
-  var isAdmin = user.email === 'martinkolcar@iso.sk';
-
-  window.DBGet('isomanager_projects').then(function(snap) {
-    var projs = snap.val() || {};
-    var entries = Object.entries(projs);
-
-    var getMyProjs = function(cb) {
-      if (isAdmin) {
-        cb(entries.map(function(kv){ return {id:kv[0],name:kv[1].name}; }));
-      } else {
-        window.DBGet('isomanager_users/' + user.uid + '/projects').then(function(us) {
-          var uprojs = us.val() || [];
-          if (!Array.isArray(uprojs)) uprojs = [];
-          cb(entries.filter(function(kv){ return uprojs.includes(kv[0]); })
-            .map(function(kv){ return {id:kv[0],name:kv[1].name}; }));
-        });
-      }
-    };
-
-    getMyProjs(function(myProjs) {
-      if (!myProjs.length) {
-        if (isAdmin) {
-          // Žiadne projekty → otvor admin panel
-          setTimeout(function() { window.openAdminPanel(); setTimeout(function(){ admSwitchTab('projects'); }, 100); }, 400);
-        } else {
-          document.getElementById('projTabsContainer').innerHTML = '<div style="color:#aaa;font-size:11px;padding:4px">Žiadne projekty</div>';
-        }
-        return;
-      }
-      // Zobraz projekty v taboch
-      renderProjTabs(myProjs, myProjs[0].id);
-      // Načítaj prvý projekt
-      selectProject(myProjs[0]);
-    });
-  });
-}
-
-function showProjPicker(projList) {
-  var overlay = document.getElementById('proj-picker-overlay');
-  if (!overlay) {
-    overlay = document.createElement('div');
-    overlay.id = 'proj-picker-overlay';
-    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9990;display:flex;align-items:center;justify-content:center';
-    overlay.innerHTML = '<div style="background:var(--surface);border-radius:12px;width:420px;max-width:94vw;max-height:80vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.4)">' +
-      '<div style="background:#1a1a2e;color:#fff;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0">' +
-      '<span style="font-size:15px;font-weight:700">📐 Výber projektu</span>' +
-      '<button onclick="document.getElementById(\'proj-picker-overlay\').style.display=\'none\'" style="background:none;border:1px solid #444;color:#aaa;padding:3px 10px;border-radius:4px;cursor:pointer">✕</button></div>' +
-      '<div id="proj-picker-list" style="padding:16px;overflow-y:auto"></div></div>';
-    document.body.appendChild(overlay);
-  }
-
-  var list = document.getElementById('proj-picker-list');
-  window._projPickerList = projList;
-  list.innerHTML = projList.map(function(p, idx) {
-    return '<div onclick="pickProject(' + idx + ')" style="border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:8px;cursor:pointer;display:flex;align-items:center;gap:12px;background:var(--surface)">' +
-      '<div style="width:38px;height:38px;background:#4f7cff;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:16px;flex-shrink:0">📐</div>' +
-      '<div><div style="font-weight:700;color:var(--text)">' + p.name + '</div>' +
-      (p.desc ? '<div style="font-size:12px;color:var(--text2)">' + p.desc + '</div>' : '') + '</div>' +
-      '</div>';
-  }).join('');
-
-  overlay.style.display = 'flex';
-}
-
-window.pickProject = function(idx) {
-  var p = window._projPickerList[idx];
-  if (p) selectProject(p);
-}
-
-window.selectProject = function(proj) {
-  window._currentProject = proj;
-  var overlay = document.getElementById('proj-picker-overlay');
-  if (overlay) overlay.style.display = 'none';
-  // Skry Projekt tlačidlo - nie je potrebné
-  var btn = document.getElementById('select-proj-btn');
-  if (btn) btn.style.display = 'none';
-  var badge = document.getElementById('project-badge');
-  if (badge) badge.style.display = 'none';
-  loadProjectData();
-}
-
-window.loadProjectData = function() {
-  if (!window._currentProject || !window.DB) return;
-  var base = 'isomanager_project_data/' + window._currentProject.id;
-
-  // Načítaj sekcie z projektu + legacy WeldPro sekcie
-  Promise.all([
-    window.DBGet(base + '/sections'),
-    window.DBGet('isomanager/sections')
-  ]).then(function(snaps) {
-    var projData = snaps[0].val() || {};
-    var legacyData = snaps[1].val() || {};
-    var merged = Object.assign({}, legacyData, projData);
-
-    window._isoUrls = {};
-    window.SECTIONS = Object.keys(merged).filter(function(k){ return k !== '_created'; }).sort();
-    window.ISOMETRIES_DATA = {};
-    window._isoData = merged;
-
-    window.SECTIONS.forEach(function(sec) {
-      var isos = merged[sec] || {};
-      window.ISOMETRIES_DATA[sec] = Object.keys(isos).filter(function(k){ return k !== '_created'; }).map(function(k) {
-        return isos[k].name || k;
-      });
-      Object.entries(isos).forEach(function(kv5) { var isoK=kv5[0],isoData=kv5[1];
-        if (!isoData) return;
-        if (isoData.thumbnailUrl) window._isoUrls[sec+'/'+isoK] = isoData.thumbnailUrl;
-        else if (isoData.thumbnail) window._isoUrls[sec+'/'+isoK] = isoData.thumbnail;
-      });
-    });
-
-    if (typeof renderSecTabs === 'function') renderSecTabs();
-    if (window.SECTIONS.length > 0) switchSec(window.SECTIONS[0]);
-    else renderSb();
-  });
-
-  // Live update sekcií projektu
-  dbOnValue(dbRef(window.DB, base + '/sections'), function(snap) {
-    var d = snap.val() || {};
-    if (!window.ISOMETRIES_DATA) window.ISOMETRIES_DATA = {};
-    Object.entries(d).forEach(function(kv4) { var sec=kv4[0],isos=kv4[1];
-      if (sec === '_created') return;
-      if (!window.SECTIONS.includes(sec)) window.SECTIONS.push(sec);
-      window.ISOMETRIES_DATA[sec] = Object.keys(isos||{}).filter(function(k){ return k!=='_created'; }).map(function(k){
-        return (isos[k]||{}).name || k;
-      });
-    });
-    if (typeof renderSecTabs === 'function') renderSecTabs();
-  });
-
-  // Spooly
-  dbOnValue(dbRef(window.DB, 'spools'), function(snap) {
-    var d = snap.val() || {};
-    if (!window.spools) window.spools = {};
-    Object.entries(d).forEach(function(kv2) { var sec=kv2[0],isoData=kv2[1];
-      Object.entries(isoData||{}).forEach(function(kv3) { window.spools[sec+'/'+kv3[0]] = kv3[1]||{}; });
-    });
-    renderSb(); renderPrehlad();
-    if (typeof curIso !== 'undefined' && curIso) renderSpoolTable();
-  });
-
-  listenBaliky(); listenNakladky(); listenOnline(); startPresence();
-}
-
-// Import izometrií — do projektu
-async function doIsoImport(isoList, forceSec) {
-  if (!window.DB) { alert('Firebase nie je pripojená'); return; }
-  if (!window._currentProject) { alert('Najprv vyberte projekt'); return; }
+// Import izometrií
+window.doIsoImport = async function(isoList, forceSec) {
+  if (!window._currentProject) { alert('Vyberte projekt'); return; }
   var added = 0, skipped = 0;
   for (var i = 0; i < isoList.length; i++) {
-    var isoName = isoList[i].trim();
-    if (!isoName) continue;
-    var sec = forceSec || guessSecFromIsoName(isoName);
-    var isoKey = isoName.replace(/[^a-zA-Z0-9_\-]/g, '_');
-    var path = 'isomanager_project_data/' + window._currentProject.id + '/sections/' + sec + '/' + isoKey;
-    var snap = await window.DBGet(path);
-    if (snap.val()) { skipped++; continue; }
-    await window.DBSet(path, { name: isoName, sec: sec, updatedAt: new Date().toISOString(), welds: 0, importedManually: true });
+    var name = isoList[i].trim();
+    if (!name) continue;
+    var sec = forceSec || guessSecFromIsoName(name);
+    var key = name.replace(/[^a-zA-Z0-9_\-]/g, '_');
+    var path = 'isomanager_project_data/' + window._currentProject.id + '/sections/' + sec + '/' + key;
+    var s = await window.DBGet(path);
+    if (s.val()) { skipped++; continue; }
+    await window.DBSet(path, { name: name, sec: sec, updatedAt: new Date().toISOString(), welds: 0 });
     added++;
   }
-  alert('✅ Import hotový!\n\n➕ Pridaných: ' + added + '\n⏭ Preskočených: ' + skipped);
-  loadProjectData();
-}
+  alert('✅ Pridaných: ' + added + ', preskočených: ' + skipped);
+  if (window._currentProject) loadProjData(window._currentProject.id);
+};
+
+// Po zatvorení admin panelu refresh taby
+var _origClose = window.closeAdminPanel;
+window.closeAdminPanel = function() {
+  if (_origClose) _origClose();
+  initProjSystem();
+};
 </script>
+
+
 </body>
 </html>
