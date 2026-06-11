@@ -291,22 +291,23 @@ window.SECTIONS = [];
 window.loadIsoDataFromFirebase = function(){
   if(!window.DB) return;
   db.ref('isomanager/sections').on('value', snap => {
-    const data = snap.val();
+    // Ulož do cache vždy
+    window._legacyIsoData = snap.val() || {};
+
+    // Aplikuj len ak je aktívny dany projekt (alebo žiadny projekt)
+    if (window._currentProject && window._currentProject.id !== 'dany') return;
+
+    const data = window._legacyIsoData;
     window._isoUrls = {};
-    if(data){
+    if(data && Object.keys(data).length){
       window.SECTIONS = Object.keys(data).sort();
       window.ISOMETRIES_DATA = {};
       window.SECTIONS.forEach(sec => {
         const isos = data[sec] || {};
-        window.ISOMETRIES_DATA[sec] = Object.keys(isos).map(k =>
-          isos[k].name || k
-        );
+        window.ISOMETRIES_DATA[sec] = Object.keys(isos).map(k => isos[k].name || k);
         Object.entries(isos).forEach(([isoK, isoData]) => {
-          if(isoData && isoData.thumbnailUrl){
-            window._isoUrls[sec+'/'+isoK] = isoData.thumbnailUrl;
-          } else if(isoData && isoData.thumbnail){
-            window._isoUrls[sec+'/'+isoK] = isoData.thumbnail;
-          }
+          if(isoData && isoData.thumbnailUrl) window._isoUrls[sec+'/'+isoK] = isoData.thumbnailUrl;
+          else if(isoData && isoData.thumbnail) window._isoUrls[sec+'/'+isoK] = isoData.thumbnail;
         });
       });
     } else {
@@ -314,11 +315,8 @@ window.loadIsoDataFromFirebase = function(){
       window.ISOMETRIES_DATA = {};
     }
     if(typeof renderSecTabs === 'function') renderSecTabs();
-    if(window.SECTIONS.length > 0 && !curSec){
-      switchSec(window.SECTIONS[0]);
-    } else {
-      renderSb();
-    }
+    if(window.SECTIONS.length > 0 && !curSec) switchSec(window.SECTIONS[0]);
+    else renderSb();
   });
 };
 
@@ -7398,7 +7396,27 @@ window.switchProj = function(idx) {
 
 function activateProject(proj) {
   window._currentProject = proj;
-  loadProjData(proj.id);
+  // Pre dany projekt - ak máme cache, aplikuj hneď
+  if (proj.id === 'dany' && window._legacyIsoData && Object.keys(window._legacyIsoData).length) {
+    var data = window._legacyIsoData;
+    window.SECTIONS = Object.keys(data).sort();
+    window.ISOMETRIES_DATA = {};
+    window._isoUrls = {};
+    window.SECTIONS.forEach(function(sec) {
+      var isos = data[sec] || {};
+      window.ISOMETRIES_DATA[sec] = Object.keys(isos).map(function(k){ return isos[k].name||k; });
+      Object.keys(isos).forEach(function(isoK){
+        var d = isos[isoK];
+        if(d && d.thumbnailUrl) window._isoUrls[sec+'/'+isoK] = d.thumbnailUrl;
+        else if(d && d.thumbnail) window._isoUrls[sec+'/'+isoK] = d.thumbnail;
+      });
+    });
+    if(typeof renderSecTabs === 'function') renderSecTabs();
+    if(window.SECTIONS.length > 0 && typeof switchSec === 'function') switchSec(window.SECTIONS[0]);
+    else if(typeof renderSb === 'function') renderSb();
+  } else {
+    loadProjData(proj.id);
+  }
 }
 
 function loadProjData(projId) {
@@ -7433,8 +7451,14 @@ function loadProjData(projId) {
     });
 
     if (typeof renderSecTabs === 'function') renderSecTabs();
-    if (window.SECTIONS.length > 0 && typeof switchSec === 'function') switchSec(window.SECTIONS[0]);
-    else if (typeof renderSb === 'function') renderSb();
+    if (window.SECTIONS.length > 0 && typeof switchSec === 'function') {
+      switchSec(window.SECTIONS[0]);
+    } else {
+      // Prázdny projekt - vyčisti sidebar
+      if (typeof renderSb === 'function') renderSb();
+      var sb = document.getElementById('sbList');
+      if (sb) sb.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text2);font-size:12px">Žiadne izometrie.<br>Pridajte ich cez Import izometrií.</div>';
+    }
   });
 
   // Live spooly
