@@ -10,6 +10,20 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 import { getDatabase, ref as dbRef, set as dbSet, update as dbUpdate, remove as dbRemove, onValue as dbOnValue, push as dbPush, query as dbQuery, orderByChild as dbOrderByChild, startAt as dbStartAt, get as dbGet } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, createUserWithEmailAndPassword, updateProfile, deleteUser as fbDeleteUser } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 const _app = initializeApp({
+  apiKey: "AIzaSyBDD4bhLD7XqYbwIi8LhdkHdmXfrM1-0X0",
+  authDomain: "isomanager-4cb2f.firebaseapp.com",
+  databaseURL: "https://isomanager-4cb2f-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "isomanager-4cb2f",
+  storageBucket: "isomanager-4cb2f.firebasestorage.app",
+  messagingSenderId: "319198298733",
+  appId: "1:319198298733:web:e90ff234366c88a5eccaf3"
+});
+window.DB = getDatabase(_app);
+const _auth = getAuth(_app);
+window._auth = _auth;
+
+// Druhý Firebase — WeldPro (len čítanie izometrií)
+const _weldproApp = initializeApp({
   apiKey: "AIzaSyCI-WXOAfRtM1pvMseR0PFppp5f1WjOkcc",
   authDomain: "weldpro-dany.firebaseapp.com",
   databaseURL: "https://weldpro-dany-default-rtdb.europe-west1.firebasedatabase.app",
@@ -17,10 +31,9 @@ const _app = initializeApp({
   storageBucket: "weldpro-dany.firebasestorage.app",
   messagingSenderId: "319198298733",
   appId: "1:319198298733:web:e90ff234366c88a5eccaf3"
-});
-window.DB = getDatabase(_app);
-const _auth = getAuth(_app);
-window._auth = _auth;
+}, "weldpro");
+window.WeldproDB = getDatabase(_weldproApp);
+window.WeldproGet = (p) => dbGet(dbRef(window.WeldproDB, p));
 const ADMIN_EMAIL = 'martinkolcar@iso.sk';
 window.DBRef = (p) => dbRef(window.DB, p);
 window.DBSet = (p, v) => dbSet(dbRef(window.DB, p), v);
@@ -36,6 +49,18 @@ onAuthStateChanged(_auth, (user) => {
     document.getElementById('loginScreen').style.display='none';
     document.getElementById('app').style.display='flex';
     document.getElementById('userNameDisplay').textContent = user.displayName || (user.email ? user.email.split('@')[0] : 'User');
+    // Automaticky zapíš usera do DB ak tam ešte nie je
+    dbGet(dbRef(window.DB, 'users/' + user.uid)).then(function(snap) {
+      if (!snap.val()) {
+        var nameFromEmail = user.email ? user.email.split('@')[0] : user.uid;
+        var displayName = user.displayName || nameFromEmail;
+        dbSet(dbRef(window.DB, 'users/' + user.uid), {
+          name: displayName,
+          email: user.email || '',
+          createdAt: Date.now()
+        });
+      }
+    });
     var spb = document.getElementById('select-proj-btn');
     if(spb) spb.style.display='inline-block';
     // Admin check - zobraz admin btn len pre admina
@@ -7453,13 +7478,11 @@ function loadProjData(projId) {
 
   Promise.all([
     window.DBGet(base + '/sections'),
-    window.DBGet('isomanager/sections')
+    window.WeldproGet('isomanager/sections/' + projId).catch(function(){ return {val:function(){return null;}}; })
   ]).then(function(snaps) {
     var projSecs = snaps[0].val() || {};
-    var legacySecs = snaps[1].val() || {};
-    // DANY projekt číta aj z legacy WeldPro cesty, ostatné len vlastné sekcie
-    var legacyForThisProj = projId === 'dany' ? legacySecs : {};
-    var merged = Object.assign({}, legacyForThisProj, projSecs);
+    var weldproSecs = snaps[1].val() || {};
+    var merged = Object.assign({}, weldproSecs, projSecs);
 
     window._isoUrls = {};
     window.SECTIONS = Object.keys(merged).filter(function(k) { return k !== '_created'; }).sort();
