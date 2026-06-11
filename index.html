@@ -37,11 +37,9 @@ onAuthStateChanged(_auth, (user) => {
     document.getElementById('userNameDisplay').textContent = user.displayName || (user.email ? user.email.split('@')[0] : 'User');
     var spb = document.getElementById('select-proj-btn');
     if(spb) spb.style.display='inline-block';
-    if(user.email === ADMIN_EMAIL){
-      document.getElementById('adminBtn').style.display='inline-flex';
-    } else {
-      document.getElementById('adminBtn').style.display='none';
-    }
+    // Admin check - zobraz admin btn len pre admina
+    // Vždy zobraz adminBtn - práva sú kontrolované vo funkcii
+    document.getElementById('adminBtn').style.display='inline-flex';
     if(typeof loadProjectsAndShow === 'function') loadProjectsAndShow();
     else if(typeof initApp === 'function') initApp();
     setTimeout(window._startLogListener, 1000);
