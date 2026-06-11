@@ -40,8 +40,7 @@ onAuthStateChanged(_auth, (user) => {
     // Admin check - zobraz admin btn len pre admina
     // Vždy zobraz adminBtn - práva sú kontrolované vo funkcii
     document.getElementById('adminBtn').style.display='inline-flex';
-    if(typeof loadProjectsAndShow === 'function') loadProjectsAndShow();
-    else if(typeof initApp === 'function') initApp();
+    if(typeof initApp === 'function') initApp();
     setTimeout(window._startLogListener, 1000);
     setTimeout(window.applyLang, 600);
     // Session enforcement - one device at a time (nie pre admina)
@@ -193,8 +192,7 @@ window.openAdminPanel = function(){
 window.closeAdminPanel = function(){
   document.getElementById('adminPanel').style.display='none';
   document.getElementById('adminPanel').style.cssText='display:none';
-  // Refresh projekt taby
-  if (typeof loadProjectsAndShow === 'function') loadProjectsAndShow();
+  if(typeof window.loadProjectsAndShow === 'function') window.loadProjectsAndShow();
 };
 
 window.adminAddUser = async function(){
@@ -4720,13 +4718,12 @@ function renderSecTabs(){
 function initApp(){
   if(!window.DB){ window.addEventListener('fbReady', initApp, {once:true}); return; }
   listenBaliky(); listenNakladky(); listenOnline(); startPresence();
-  // Načítaj projekty + sekcie
-  if(typeof loadProjectsAndShow === 'function') {
-    setTimeout(loadProjectsAndShow, 300);
-  } else {
-    window.loadIsoDataFromFirebase();
-  }
-  // listen all spools - dynamicky podľa sekcií
+  // Načítaj projekty — window.loadProjectsAndShow je definovaná v poslednom script bloku
+  setTimeout(function(){
+    if(typeof window.loadProjectsAndShow === 'function') window.loadProjectsAndShow();
+    else window.loadIsoDataFromFirebase();
+  }, 100);
+  // listen spools
   db.ref('spools').on('value', snap => {
     const d = snap.val()||{};
     Object.entries(d).forEach(([sec, isoData]) => {
@@ -7307,7 +7304,7 @@ document.getElementById('import-iso-overlay').addEventListener('click', function
 window._currentProject = null;
 
 // Tab switcher pre admin panel
-function admSwitchTab(tab) {
+window.admSwitchTab = function(tab) {
   ['users','projects'].forEach(function(t) {
     var btn = document.getElementById('adm-tab-'+t);
     var body = document.getElementById('adm-body-'+t);
@@ -7320,7 +7317,7 @@ function admSwitchTab(tab) {
   if (tab === 'projects') admLoadProjects();
 }
 
-function admLoadProjects() {
+window.admLoadProjects = function() {
   window.DBGet('isomanager_projects').then(function(snap) {
     var projs = snap.val() || {};
     var list = document.getElementById('adm-proj-list');
@@ -7374,7 +7371,7 @@ function admLoadProjects() {
   });
 }
 
-function admCreateProject() {
+window.admCreateProject = function() {
   var name = (document.getElementById('new-proj-name').value||'').trim();
   var desc = (document.getElementById('new-proj-desc').value||'').trim();
   if (!name) { alert('Zadajte názov projektu'); return; }
@@ -7388,14 +7385,14 @@ function admCreateProject() {
   });
 }
 
-function admDeleteProject(id) {
+window.admDeleteProject = function(id) {
   if (!confirm('Vymazať projekt "' + id + '"?')) return;
   window.DBRemove('isomanager_projects/' + id);
   window.DBRemove('isomanager_project_data/' + id);
   admLoadProjects();
 }
 
-function admToggleUserProject(uid, projId, add) {
+window.admToggleUserProject = function(uid, projId, add) {
   window.DBGet('isomanager_users/' + uid + '/projects').then(function(snap) {
     var projs = snap.val() || [];
     if (!Array.isArray(projs)) projs = [];
@@ -7418,7 +7415,7 @@ window.openAdminPanel = function() {
 };
 
 // Projekt výber
-function renderProjTabs(projs, activeId) {
+window.renderProjTabs = function(projs, activeId) {
   var c = document.getElementById('projTabsContainer');
   if (!c) return;
   if (!projs.length) {
@@ -7433,7 +7430,7 @@ function renderProjTabs(projs, activeId) {
   }).join('');
 }
 
-function switchProject(id, name) {
+window.switchProject = function(id, name) {
   window._currentProject = {id: id, name: name};
   // Refresh proj tabs
   window.DBGet('isomanager_projects').then(function(snap) {
@@ -7443,7 +7440,7 @@ function switchProject(id, name) {
   loadProjectData();
 }
 
-function loadProjectsAndShow() {
+window.loadProjectsAndShow = function() {
   if (!window.DB) { setTimeout(loadProjectsAndShow, 500); return; }
   var user = window._currentUser;
   if (!user || !user.email) { setTimeout(loadProjectsAndShow, 300); return; }
@@ -7512,12 +7509,12 @@ function showProjPicker(projList) {
   overlay.style.display = 'flex';
 }
 
-function pickProject(idx) {
+window.pickProject = function(idx) {
   var p = window._projPickerList[idx];
   if (p) selectProject(p);
 }
 
-function selectProject(proj) {
+window.selectProject = function(proj) {
   window._currentProject = proj;
   var overlay = document.getElementById('proj-picker-overlay');
   if (overlay) overlay.style.display = 'none';
@@ -7529,7 +7526,7 @@ function selectProject(proj) {
   loadProjectData();
 }
 
-function loadProjectData() {
+window.loadProjectData = function() {
   if (!window._currentProject || !window.DB) return;
   var base = 'isomanager_project_data/' + window._currentProject.id;
 
