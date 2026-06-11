@@ -2753,13 +2753,7 @@ tr:hover td{background:var(--surface2)}
     <button class="btn btn-purple" onclick="openNakladkaModal()">🚛 <span class="btn-text" data-lang="novaНakladka">Nová nakladka</span></button>
     <div style="display:flex;align-items:center;gap:8px;margin-left:8px;flex-shrink:0">
       <span id="userNameDisplay" style="font-size:11px;color:var(--text2);font-family:monospace;white-space:nowrap"></span>
-      <!-- Projekt badge -->
-      <div id="project-badge" style="display:none;background:rgba(79,124,255,0.15);border:1px solid #4f7cff;border-radius:6px;padding:3px 10px;cursor:pointer;margin-left:4px" onclick="loadProjectsAndShow()" title="Prepnúť projekt">
-        <span style="font-size:9px;color:var(--text2);display:block;line-height:1">PROJEKT</span>
-        <span id="project-badge-name" style="font-size:12px;font-weight:700;color:#4f7cff"></span>
-      </div>
       <!-- Vždy viditeľné tlačidlo výberu projektu -->
-      <button id="select-proj-btn" style="display:none;background:#4f7cff;color:#fff;border:none;border-radius:6px;padding:5px 12px;cursor:pointer;font-size:12px;font-weight:600;margin-left:4px" onclick="loadProjectsAndShow()">📂 Projekt</button>
       <button onclick="openScannerModal()" style="background:var(--surface2);border:none;border-radius:6px;padding:5px 10px;cursor:pointer;font-size:12px;font-weight:600;display:inline-flex;align-items:center;gap:4px;color:var(--text)">📋 <span data-lang="odoslatObalky">Odoslať obalky</span></button>
       <div style="display:inline-flex;align-items:center;gap:1px;background:var(--surface2);border-radius:6px;padding:3px 4px">
         <button id="langBtn_sk" onclick="setLang('sk')" style="background:none;border:none;cursor:pointer;font-size:15px;padding:1px 3px;border-radius:4px" title="Slovenčina">🇸🇰</button>
@@ -2788,8 +2782,6 @@ tr:hover td{background:var(--surface2)}
   <div class="page active" id="page-spooly" style="flex-direction:row;overflow:hidden">
     <!-- SEC TABS + SIDEBAR wrapper -->
     <div style="display:flex;flex-direction:column;width:230px;border-right:1px solid var(--border);background:var(--surface)">
-      <!-- PROJEKT TABY -->
-      <div id="projTabsContainer" style="display:none;gap:2px;padding:6px 8px;background:#1a1a2e;flex-wrap:wrap;min-height:32px"></div>
       <div class="sec-tabs" id="secTabsContainer" style="padding:6px 8px;gap:4px;flex-wrap:wrap">
         <div style="color:var(--text2);font-size:12px;padding:4px 8px">Načítavam sekcie...</div>
       </div>
@@ -7361,16 +7353,37 @@ function initProjSystem() {
 }
 
 function renderProjTabs(projs, activeId) {
-  var c = document.getElementById('projTabsContainer');
-  if (!c) return;
-  c.style.display = 'flex';
   window._projTabData = projs;
-  c.innerHTML = projs.map(function(p, idx) {
+  window._activeProjId = activeId;
+  var c = document.getElementById('secTabsContainer');
+  if (!c) return;
+  // Vykresli projekt taby + sec taby dokopy
+  var projHtml = projs.map(function(p, idx) {
     var active = p.id === activeId;
-    var bg = active ? 'background:#4f7cff;color:#fff;' : 'color:#aaa;background:rgba(255,255,255,0.1);';
-    return '<div onclick="switchProj(' + idx + ')" style="padding:4px 12px;font-size:11px;font-weight:700;cursor:pointer;border-radius:20px;' + bg + '">' + p.name + '</div>';
+    return '<div onclick="switchProj(' + idx + ')" style="padding:3px 10px;font-size:11px;font-weight:700;cursor:pointer;border-radius:4px;margin-bottom:2px;' +
+      (active ? 'background:#1a1a2e;color:#fff;' : 'color:var(--text2);border:1px solid var(--border);') + '">' + p.name + '</div>';
   }).join('');
+  // Existujúce sec taby zachovaj
+  var existing = c.querySelector('#sec-tabs-inner');
+  if (!existing) {
+    var inner = document.createElement('div');
+    inner.id = 'sec-tabs-inner';
+    inner.style.cssText = 'display:contents';
+    // Presuň existujúci obsah
+    while (c.firstChild) inner.appendChild(c.firstChild);
+    c.appendChild(inner);
+  }
+  // Pridaj/aktualizuj projekt taby
+  var projDiv = document.getElementById('proj-tabs-inner');
+  if (!projDiv) {
+    projDiv = document.createElement('div');
+    projDiv.id = 'proj-tabs-inner';
+    projDiv.style.cssText = 'display:flex;flex-wrap:wrap;gap:3px;width:100%;margin-bottom:4px;';
+    c.insertBefore(projDiv, c.firstChild);
+  }
+  projDiv.innerHTML = projHtml;
 }
+
 
 window.switchProj = function(idx) {
   var p = window._projTabData && window._projTabData[idx];
