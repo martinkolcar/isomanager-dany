@@ -52,8 +52,10 @@ onAuthStateChanged(_auth, (user) => {
     // Automaticky zapíš usera do DB ak tam ešte nie je
     dbGet(dbRef(window.DB, 'users/' + user.uid)).then(function(snap) {
       if (!snap.val()) {
-        var nameFromEmail = user.email ? user.email.split('@')[0] : user.uid;
-        var displayName = user.displayName || nameFromEmail;
+        // Meno z displayName alebo z emailu pred @
+        var emailName = user.email ? user.email.split('@')[0] : user.uid;
+        var displayName = user.displayName || emailName;
+        // Skús sformatovať meno z emailu (napr. martinkolcar -> Martin Kolcar)
         dbSet(dbRef(window.DB, 'users/' + user.uid), {
           name: displayName,
           email: user.email || '',
@@ -64,8 +66,10 @@ onAuthStateChanged(_auth, (user) => {
     var spb = document.getElementById('select-proj-btn');
     if(spb) spb.style.display='inline-block';
     // Admin check - zobraz admin btn len pre admina
-    // Vždy zobraz adminBtn - práva sú kontrolované vo funkcii
-    document.getElementById('adminBtn').style.display='inline-flex';
+    // Admin button len pre admina
+    if (user.email === 'martinkolcar@iso.sk' || (user.email||'').indexOf('martinkolcar') !== -1) {
+      document.getElementById('adminBtn').style.display='inline-flex';
+    }
     if(typeof initApp === 'function') initApp();
     setTimeout(window._startLogListener, 1000);
     setTimeout(window.applyLang, 600);
@@ -256,7 +260,7 @@ window.loadAdminUsers = function(){
 
   Promise.all([
     window.DBGet('users'),
-    window.DBGet('isomanager_projects'),
+    window.WeldproGet('isomanager_projects'),
     window.DBGet('isomanager_users')
   ]).then(function(snaps) {
     var users = snaps[0].val() || {};
@@ -7413,7 +7417,7 @@ function initProjSystem() {
   var adminEmails = ['martinkolcar@iso.sk', 'martin.kolcar@iso.sk', 'martinkolcar@gmail.com'];
   var isAdmin = adminEmails.indexOf(email) !== -1 || email.indexOf('martinkolcar') !== -1;
 
-  window.DBGet('isomanager_projects').then(function(snap) {
+  window.WeldproGet('isomanager_projects').then(function(snap) {
     var projs = snap.val() || {};
 
     var allProjs = Object.keys(projs).map(function(id) {
@@ -7542,7 +7546,7 @@ window.admSwitchTab = function(tab) {
 };
 
 window.admLoadProjects = function() {
-  window.DBGet('isomanager_projects').then(function(snap) {
+  window.WeldproGet('isomanager_projects').then(function(snap) {
     var projs = snap.val() || {};
     var projKeys = Object.keys(projs);
     var list = document.getElementById('adm-proj-list');
