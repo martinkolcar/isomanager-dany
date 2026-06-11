@@ -5644,7 +5644,7 @@ function listenOnline(){
     online={};
     Object.entries(data).forEach(([id,u])=>{ if(now-(u.ts||0)<30000) online[id]=u; });
     const cnt=Object.keys(online).length;
-    document.getElementById('onlineLabel').textContent=cnt+' online';
+    var ol=document.getElementById('onlineLabel'); if(ol) ol.textContent=cnt+' online';
     // fill online list
     const listEl=document.getElementById('onlineList');
     if(listEl){
@@ -7399,14 +7399,7 @@ function initProjSystem() {
         if (!Array.isArray(allowed)) allowed = Object.values(allowed || {});
         var myProjs = allProjs.filter(function(p) { return allowed.indexOf(p.id) !== -1; });
         if (!myProjs.length) {
-          // Zobraz správu v UI namiesto alert() — menej rušivé
-          var appDiv = document.getElementById('app');
-          if (appDiv) appDiv.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;flex-direction:column;gap:12px;color:var(--text2)">' +
-            '<div style="font-size:48px">🔒</div>' +
-            '<div style="font-size:16px;font-weight:600;color:var(--text)">Nemáte pridelený žiadny projekt</div>' +
-            '<div style="font-size:13px">Kontaktujte administrátora pre pridelenie prístupu.</div>' +
-            '<button onclick="window.doLogout()" style="margin-top:8px;padding:8px 20px;border-radius:6px;border:1px solid var(--border);background:none;cursor:pointer;color:var(--text2);font-size:13px">Odhlásiť sa</button>' +
-            '</div>';
+          alert('Nemáte pridelený žiadny projekt. Kontaktujte administrátora.');
           return;
         }
         renderProjTabs(myProjs, myProjs[0].id);
