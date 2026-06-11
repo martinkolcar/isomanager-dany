@@ -34,6 +34,7 @@ const _weldproApp = initializeApp({
 }, "weldpro");
 window.WeldproDB = getDatabase(_weldproApp);
 window.WeldproGet = (p) => dbGet(dbRef(window.WeldproDB, p));
+window.WeldproOnValue = (p, cb) => dbOnValue(dbRef(window.WeldproDB, p), cb);
 const ADMIN_EMAIL = 'martinkolcar@iso.sk';
 window.DBRef = (p) => dbRef(window.DB, p);
 window.DBSet = (p, v) => dbSet(dbRef(window.DB, p), v);
@@ -7487,7 +7488,9 @@ function loadProjData(projId) {
 
   Promise.all([
     window.DBGet(base + '/sections'),
-    window.WeldproGet('isomanager/sections/' + projId.toUpperCase()).catch(function(){ return {val:function(){return null;}}; })
+    new Promise(function(resolve) {
+      window.WeldproOnValue('isomanager/sections/' + projId.toUpperCase(), function(snap) { resolve(snap); });
+    })
   ]).then(function(snaps) {
     var projSecs = snaps[0].val() || {};
     var weldproData = snaps[1].val() || {};
@@ -7552,36 +7555,34 @@ function loadProjData(projId) {
     if (typeof curIso !== 'undefined' && curIso && typeof renderSpoolTable === 'function') renderSpoolTable();
   });
 
-  // Spooly z WeldPro — načítaj pre aktívny projekt
+  // Spooly z WeldPro — live listener
   var projIdUpper = (window._activeProjId || '').toUpperCase();
-  window.WeldproGet('spools/' + projIdUpper).then(function(snap) {
+  window.WeldproOnValue('spools/' + projIdUpper, function(snap) {
     var d = snap.val() || {};
+    // Vymaž staré WeldPro spooly
+    Object.keys(window.spools || {}).forEach(function(k) {
+      if (window.spools[k] && window.spools[k].creator === 'WeldPro') delete window.spools[k];
+    });
     window.spools = window.spools || {};
     Object.keys(d).forEach(function(isoKey) {
       var isoSpools = d[isoKey];
       if (!isoSpools || typeof isoSpools !== 'object') return;
-      // Konvertuj podčiarkovníky na bodky — ale nie posledný pred číslom strany (napr. _1z3)
-      var isoKeyDots = isoKey.replace(/_(?=\d*[a-zA-Z])/g, '.').replace(/_(?!\d*z\d)/g, '.');
-      // Jednoduchšie: použi pôvodný názov z isomanager/sections
-      var isoKeyDots2 = window._isoData && window._isoData[isoKey] ? isoKey : isoKey.replace(/_/g, '.');
-      // Najspoľahlivejšie — hľadaj zhodu v ISOMETRIES_DATA
-      var isoKeyDots = isoKey;
+      // Nájdi správny názov izometrie
+      var isoKeyNorm = isoKey;
       if (window.ISOMETRIES_DATA) {
         Object.keys(window.ISOMETRIES_DATA).forEach(function(sec) {
           (window.ISOMETRIES_DATA[sec] || []).forEach(function(isoName) {
-            if (isoName.replace(/[._]/g, '_') === isoKey) isoKeyDots = isoName;
+            if (isoName.replace(/[._]/g, '_') === isoKey) isoKeyNorm = isoName;
           });
         });
       }
       Object.keys(isoSpools).forEach(function(spoolKey) {
-        var spool = isoSpools[spoolKey] || {};
-        // Ulož pod oboma kľúčmi
-        window.spools[isoKeyDots + '/' + spoolKey] = spool;
-        window.spools[isoKey + '/' + spoolKey] = spool;
+        window.spools[isoKeyNorm + '/' + spoolKey] = isoSpools[spoolKey] || {};
       });
     });
     if (typeof renderSb === 'function') renderSb();
     if (typeof curIso !== 'undefined' && curIso && typeof renderSpoolTable === 'function') renderSpoolTable();
+    if (typeof renderPrehlad === 'function') renderPrehlad();
   });
 }
 
