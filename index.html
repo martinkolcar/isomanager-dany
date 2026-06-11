@@ -7339,12 +7339,6 @@ function initProjSystem() {
   window.DBGet('isomanager_projects').then(function(snap) {
     var projs = snap.val() || {};
 
-    // Ak DANY projekt neexistuje, vytvor ho automaticky
-    if (!projs['dany']) {
-      window.DBSet('isomanager_projects/dany', { name: 'DANY', desc: 'Hlavný projekt', created: Date.now() });
-      projs['dany'] = { name: 'DANY' };
-    }
-
     var allProjs = Object.keys(projs).map(function(id) {
       return { id: id, name: projs[id].name, desc: projs[id].desc || '' };
     });
@@ -7391,12 +7385,14 @@ function renderProjTabs(projs, activeId) {
 window.switchProj = function(idx) {
   var p = window._projTabData && window._projTabData[idx];
   if (!p) return;
-  window.DBGet('isomanager_projects').then(function(snap) {
-    var projs = Object.keys(snap.val() || {}).map(function(k) {
-      return { id: k, name: snap.val()[k].name };
-    });
-    renderProjTabs(projs, p.id);
-  });
+  // Vyčisti sekcie a izometrie
+  window.SECTIONS = [];
+  window.ISOMETRIES_DATA = {};
+  window._isoData = {};
+  window.spools = {};
+  // Nastav aktívny projekt
+  window._activeProjId = p.id;
+  renderProjTabs(window._projTabData, p.id);
   activateProject(p);
 };
 
@@ -7414,8 +7410,9 @@ function loadProjData(projId) {
   ]).then(function(snaps) {
     var projSecs = snaps[0].val() || {};
     var legacySecs = snaps[1].val() || {};
-    // Všetky projekty čítajú z project_data, DANY projekt tiež z legacy WeldPro cesty
-    var merged = Object.assign({}, projId === 'dany' ? legacySecs : {}, projSecs);
+    // DANY projekt číta aj z legacy WeldPro cesty, ostatné len vlastné sekcie
+    var legacyForThisProj = projId === 'dany' ? legacySecs : {};
+    var merged = Object.assign({}, legacyForThisProj, projSecs);
 
     window._isoUrls = {};
     window.SECTIONS = Object.keys(merged).filter(function(k) { return k !== '_created'; }).sort();
@@ -7554,9 +7551,21 @@ window.admCreateProject = function() {
 
 window.admDeleteProject = function(id) {
   if (!confirm('Vymazať projekt "' + id + '"?')) return;
-  window.DBRemove('isomanager_projects/' + id);
-  window.DBRemove('isomanager_project_data/' + id);
-  window.admLoadProjects();
+  Promise.all([
+    window.DBRemove('isomanager_projects/' + id),
+    window.DBRemove('isomanager_project_data/' + id)
+  ]).then(function() {
+    window.admLoadProjects();
+    // Refresh projekt taby
+    if (window._projTabData) {
+      window._projTabData = window._projTabData.filter(function(p) { return p.id !== id; });
+      if (window._activeProjId === id && window._projTabData.length > 0) {
+        window._activeProjId = window._projTabData[0].id;
+        activateProject(window._projTabData[0]);
+      }
+      renderProjTabs(window._projTabData, window._activeProjId);
+    }
+  });
 };
 
 window.admToggleUser = function(uid, projId, add) {
