@@ -4787,10 +4787,14 @@ function renderSecTabs(){
     }).join('');
   }
 
-  // Sekcie
+  // Sekcie — skry sekciu ak má rovnaký názov ako aktívny projekt
   var secHtml = '';
+  var activeProjName = window._activeProjId ? window._activeProjId.toUpperCase() : '';
   if(window.SECTIONS && window.SECTIONS.length > 0){
-    secHtml = window.SECTIONS.map(function(sec) {
+    var visibleSecs = window.SECTIONS.filter(function(sec) {
+      return sec.toUpperCase() !== activeProjName;
+    });
+    secHtml = visibleSecs.map(function(sec) {
       var active = sec === curSec;
       return '<div class="sec-tab' + (active ? ' active' : '') + '" onclick="switchSec(\'' + sec + '\',this)">' + sec + '</div>';
     }).join('');
