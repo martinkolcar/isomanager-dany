@@ -7560,8 +7560,13 @@ function loadProjData(projId) {
     Object.keys(d).forEach(function(isoKey) {
       var isoSpools = d[isoKey];
       if (!isoSpools || typeof isoSpools !== 'object') return;
+      // Konvertuj podčiarkovníky na bodky pre názov izometrie
+      var isoKeyDots = isoKey.replace(/_/g, '.');
       Object.keys(isoSpools).forEach(function(spoolKey) {
-        window.spools[isoKey + '/' + spoolKey] = isoSpools[spoolKey] || {};
+        var spool = isoSpools[spoolKey] || {};
+        // Ulož pod oboma kľúčmi
+        window.spools[isoKeyDots + '/' + spoolKey] = spool;
+        window.spools[isoKey + '/' + spoolKey] = spool;
       });
     });
     if (typeof renderSb === 'function') renderSb();
