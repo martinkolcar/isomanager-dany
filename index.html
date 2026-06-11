@@ -2755,12 +2755,12 @@ tr:hover td{background:var(--surface2)}
     <div style="display:flex;align-items:center;gap:8px;margin-left:8px;flex-shrink:0">
       <span id="userNameDisplay" style="font-size:11px;color:var(--text2);font-family:monospace;white-space:nowrap"></span>
       <!-- Projekt badge -->
-      <div id="project-badge" style="display:none;background:rgba(79,124,255,0.15);border:1px solid #4f7cff;border-radius:6px;padding:3px 10px;cursor:pointer;margin-left:4px" onclick="openProjSwitch()" title="Prepnúť projekt">
+      <div id="project-badge" style="display:none;background:rgba(79,124,255,0.15);border:1px solid #4f7cff;border-radius:6px;padding:3px 10px;cursor:pointer;margin-left:4px" onclick="loadProjectsAndShow()" title="Prepnúť projekt">
         <span style="font-size:9px;color:var(--text2);display:block;line-height:1">PROJEKT</span>
         <span id="project-badge-name" style="font-size:12px;font-weight:700;color:#4f7cff"></span>
       </div>
       <!-- Vždy viditeľné tlačidlo výberu projektu -->
-      <button id="select-proj-btn" style="display:none;background:#4f7cff;color:#fff;border:none;border-radius:6px;padding:5px 12px;cursor:pointer;font-size:12px;font-weight:600;margin-left:4px" onclick="openProjSwitch()">📂 Projekt</button>
+      <button id="select-proj-btn" style="display:none;background:#4f7cff;color:#fff;border:none;border-radius:6px;padding:5px 12px;cursor:pointer;font-size:12px;font-weight:600;margin-left:4px" onclick="loadProjectsAndShow()">📂 Projekt</button>
       <button onclick="openScannerModal()" style="background:var(--surface2);border:none;border-radius:6px;padding:5px 10px;cursor:pointer;font-size:12px;font-weight:600;display:inline-flex;align-items:center;gap:4px;color:var(--text)">📋 <span data-lang="odoslatObalky">Odoslať obalky</span></button>
       <div style="display:inline-flex;align-items:center;gap:1px;background:var(--surface2);border-radius:6px;padding:3px 4px">
         <button id="langBtn_sk" onclick="setLang('sk')" style="background:none;border:none;cursor:pointer;font-size:15px;padding:1px 3px;border-radius:4px" title="Slovenčina">🇸🇰</button>
