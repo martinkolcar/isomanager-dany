@@ -7316,7 +7316,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
 function initProjSystem() {
   var user = window._currentUser;
-  var isAdmin = user.email === 'martinkolcar@iso.sk';
+  if (!user) return;
+  var email = (user.email || '').toLowerCase().trim();
+  // Admin emails
+  var adminEmails = ['martinkolcar@iso.sk', 'martin.kolcar@iso.sk', 'martinkolcar@gmail.com'];
+  var isAdmin = adminEmails.indexOf(email) !== -1 || email.indexOf('martinkolcar') !== -1;
 
   window.DBGet('isomanager_projects').then(function(snap) {
     var projs = snap.val() || {};
@@ -7339,7 +7343,13 @@ function initProjSystem() {
         if (!Array.isArray(allowed)) allowed = [];
         var myProjs = allProjs.filter(function(p) { return allowed.includes(p.id); });
         if (!myProjs.length) {
-          alert('Nemáte pridelený žiadny projekt.');
+          // Ak nemá pridelené ale projekty existujú, zobraz všetky (fallback)
+          if (allProjs.length) {
+            renderProjTabs(allProjs, allProjs[0].id);
+            activateProject(allProjs[0]);
+          } else {
+            alert('Nemáte pridelený žiadny projekt.');
+          }
           return;
         }
         renderProjTabs(myProjs, myProjs[0].id);
