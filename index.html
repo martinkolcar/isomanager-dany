@@ -10,11 +10,11 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 import { getDatabase, ref as dbRef, set as dbSet, update as dbUpdate, remove as dbRemove, onValue as dbOnValue, push as dbPush, query as dbQuery, orderByChild as dbOrderByChild, startAt as dbStartAt, get as dbGet } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, createUserWithEmailAndPassword, updateProfile, deleteUser as fbDeleteUser } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 const _app = initializeApp({
-  apiKey: "AIzaSyCI-WXOAfRtM1pvMseR0PFppp5f1WjOkcc",
-  authDomain: "weldpro-dany.firebaseapp.com",
-  databaseURL: "https://weldpro-dany-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId: "weldpro-dany",
-  storageBucket: "weldpro-dany.firebasestorage.app",
+  apiKey: "AIzaSyBDD4bhLD7XqYbwIi8LhdkHdmXfrM1-0X0",
+  authDomain: "isomanager-4cb2f.firebaseapp.com",
+  databaseURL: "https://isomanager-4cb2f-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "isomanager-4cb2f",
+  storageBucket: "isomanager-4cb2f.firebasestorage.app",
   messagingSenderId: "319198298733",
   appId: "1:319198298733:web:e90ff234366c88a5eccaf3"
 });
@@ -181,14 +181,14 @@ window.runFixBaliky = function(){
 };
 
 window.openAdminPanel = function(){
-  // Otvor nový iso admin panel namiesto starého
   if (typeof openIsoAdminPanel === 'function') {
     openIsoAdminPanel();
     return;
   }
   const panel = document.getElementById('adminPanel');
   panel.style.cssText='display:flex;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9998;align-items:center;justify-content:center';
-  loadAdminUsers();
+  // Vždy začni na Používatelia tabe a načítaj ich
+  window.admSwitchTab('users');
 };
 window.closeAdminPanel = function(){
   document.getElementById('adminPanel').style.display='none';
@@ -7386,8 +7386,8 @@ function initProjSystem() {
     if (isAdmin) {
       // Admin vidí všetky projekty
       if (!allProjs.length) {
-        window.openAdminPanel();
-        setTimeout(function() { admSwitchTab('projects'); }, 150);
+        // Žiadne projekty — zobraz prázdnu appku, admin si vytvorí projekt cez panel
+        renderProjTabs([], null);
         return;
       }
       renderProjTabs(allProjs, allProjs[0].id);
@@ -7613,8 +7613,8 @@ window.admDeleteProject = function(id) {
 window.admToggleUser = function(uid, projId, add) {
   window.DBGet('isomanager_users/' + uid + '/projects').then(function(snap) {
     var ps = snap.val() || [];
-    if (!Array.isArray(ps)) ps = [];
-    if (add && !ps.includes(projId)) ps.push(projId);
+    if (!Array.isArray(ps)) ps = Object.values(ps || {});
+    if (add && ps.indexOf(projId) === -1) ps.push(projId);
     if (!add) ps = ps.filter(function(p) { return p !== projId; });
     window.DBSet('isomanager_users/' + uid + '/projects', ps);
   });
