@@ -4720,8 +4720,12 @@ function renderSecTabs(){
 function initApp(){
   if(!window.DB){ window.addEventListener('fbReady', initApp, {once:true}); return; }
   listenBaliky(); listenNakladky(); listenOnline(); startPresence();
-  // Načítaj sekcie z Firebase
-  window.loadIsoDataFromFirebase();
+  // Načítaj projekty + sekcie
+  if(typeof loadProjectsAndShow === 'function') {
+    setTimeout(loadProjectsAndShow, 300);
+  } else {
+    window.loadIsoDataFromFirebase();
+  }
   // listen all spools - dynamicky podľa sekcií
   db.ref('spools').on('value', snap => {
     const d = snap.val()||{};
