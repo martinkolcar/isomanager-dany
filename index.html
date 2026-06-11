@@ -2787,6 +2787,8 @@ tr:hover td{background:var(--surface2)}
   <div class="page active" id="page-spooly" style="flex-direction:row;overflow:hidden">
     <!-- SEC TABS + SIDEBAR wrapper -->
     <div style="display:flex;flex-direction:column;width:230px;border-right:1px solid var(--border);background:var(--surface)">
+      <!-- PROJEKT TABY -->
+      <div id="projTabsContainer" style="display:flex;gap:2px;padding:6px 8px;background:#1a1a2e;flex-wrap:wrap;min-height:32px"></div>
       <div class="sec-tabs" id="secTabsContainer" style="padding:6px 8px;gap:4px;flex-wrap:wrap">
         <div style="color:var(--text2);font-size:12px;padding:4px 8px">Načítavam sekcie...</div>
       </div>
@@ -7410,6 +7412,30 @@ window.openAdminPanel = function() {
 };
 
 // Projekt výber
+function renderProjTabs(projs, activeId) {
+  var c = document.getElementById('projTabsContainer');
+  if (!c) return;
+  if (!projs.length) {
+    c.innerHTML = '<div style="color:#aaa;font-size:11px;padding:4px">Žiadne projekty</div>';
+    return;
+  }
+  c.innerHTML = projs.map(function(p) {
+    var isActive = p.id === activeId;
+    return '<div onclick="switchProject(\''+p.id+'\',\''+p.name+'\')" style="padding:3px 10px;font-size:11px;font-weight:700;cursor:pointer;border-radius:20px;white-space:nowrap;' +
+      (isActive ? 'background:#4f7cff;color:#fff;' : 'background:rgba(255,255,255,0.1);color:#aaa;') + '">' + p.name + '</div>';
+  }).join('');
+}
+
+function switchProject(id, name) {
+  window._currentProject = {id: id, name: name};
+  // Refresh proj tabs
+  window.DBGet('isomanager_projects').then(function(snap) {
+    var projs = Object.entries(snap.val()||{}).map(function(kv){ return {id:kv[0],name:kv[1].name}; });
+    renderProjTabs(projs, id);
+  });
+  loadProjectData();
+}
+
 function loadProjectsAndShow() {
   if (!window.DB) { setTimeout(loadProjectsAndShow, 500); return; }
   var user = window._currentUser;
@@ -7420,31 +7446,34 @@ function loadProjectsAndShow() {
     var projs = snap.val() || {};
     var entries = Object.entries(projs);
 
-    if (isAdmin) {
-      if (!entries.length) {
-        // Admin, žiadne projekty → otvor admin panel na tab Projekty
-        setTimeout(function() {
-          window.openAdminPanel();
-          setTimeout(function(){ admSwitchTab('projects'); }, 100);
-        }, 400);
+    var getMyProjs = function(cb) {
+      if (isAdmin) {
+        cb(entries.map(function(kv){ return {id:kv[0],name:kv[1].name}; }));
+      } else {
+        window.DBGet('isomanager_users/' + user.uid + '/projects').then(function(us) {
+          var uprojs = us.val() || [];
+          if (!Array.isArray(uprojs)) uprojs = [];
+          cb(entries.filter(function(kv){ return uprojs.includes(kv[0]); })
+            .map(function(kv){ return {id:kv[0],name:kv[1].name}; }));
+        });
+      }
+    };
+
+    getMyProjs(function(myProjs) {
+      if (!myProjs.length) {
+        if (isAdmin) {
+          // Žiadne projekty → otvor admin panel
+          setTimeout(function() { window.openAdminPanel(); setTimeout(function(){ admSwitchTab('projects'); }, 100); }, 400);
+        } else {
+          document.getElementById('projTabsContainer').innerHTML = '<div style="color:#aaa;font-size:11px;padding:4px">Žiadne projekty</div>';
+        }
         return;
       }
-      if (entries.length === 1) {
-        selectProject({ id: entries[0][0], name: entries[0][1].name });
-        return;
-      }
-      showProjPicker(entries.map(function(kv){ return {id:kv[0],name:kv[1].name,desc:kv[1].desc||''}; }));
-    } else {
-      window.DBGet('isomanager_users/' + user.uid + '/projects').then(function(us) {
-        var uprojs = us.val() || [];
-        if (!Array.isArray(uprojs)) uprojs = [];
-        var myProjs = entries.filter(function(kv){ return uprojs.includes(kv[0]); })
-          .map(function(kv){ return {id:kv[0],name:kv[1].name,desc:kv[1].desc||''}; });
-        if (!myProjs.length) { alert('Nemáte pridelený žiadny projekt. Kontaktujte administrátora.'); return; }
-        if (myProjs.length === 1) { selectProject(myProjs[0]); return; }
-        showProjPicker(myProjs);
-      });
-    }
+      // Zobraz projekty v taboch
+      renderProjTabs(myProjs, myProjs[0].id);
+      // Načítaj prvý projekt
+      selectProject(myProjs[0]);
+    });
   });
 }
 
@@ -7484,13 +7513,11 @@ function selectProject(proj) {
   window._currentProject = proj;
   var overlay = document.getElementById('proj-picker-overlay');
   if (overlay) overlay.style.display = 'none';
-
-  // Zobraz badge
-  var badge = document.getElementById('project-badge');
+  // Skry Projekt tlačidlo - nie je potrebné
   var btn = document.getElementById('select-proj-btn');
-  if (badge) { badge.style.display = 'flex'; document.getElementById('project-badge-name').textContent = proj.name; }
   if (btn) btn.style.display = 'none';
-
+  var badge = document.getElementById('project-badge');
+  if (badge) badge.style.display = 'none';
   loadProjectData();
 }
 
