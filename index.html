@@ -7538,7 +7538,7 @@ function loadProjData(projId) {
     }
   });
 
-  // Live spooly
+  // Live spooly — vlastné z isomanager-4cb2f
   window.DBOnValue('spools', function(snap) {
     var d = snap.val() || {};
     window.spools = window.spools || {};
@@ -7549,6 +7549,22 @@ function loadProjData(projId) {
     });
     if (typeof renderSb === 'function') renderSb();
     if (typeof renderPrehlad === 'function') renderPrehlad();
+    if (typeof curIso !== 'undefined' && curIso && typeof renderSpoolTable === 'function') renderSpoolTable();
+  });
+
+  // Spooly z WeldPro — načítaj pre aktívny projekt
+  var projIdUpper = (window._activeProjId || '').toUpperCase();
+  window.WeldproGet('spools/' + projIdUpper).then(function(snap) {
+    var d = snap.val() || {};
+    window.spools = window.spools || {};
+    Object.keys(d).forEach(function(isoKey) {
+      var isoSpools = d[isoKey];
+      if (!isoSpools || typeof isoSpools !== 'object') return;
+      Object.keys(isoSpools).forEach(function(spoolKey) {
+        window.spools[isoKey + '/' + spoolKey] = isoSpools[spoolKey] || {};
+      });
+    });
+    if (typeof renderSb === 'function') renderSb();
     if (typeof curIso !== 'undefined' && curIso && typeof renderSpoolTable === 'function') renderSpoolTable();
   });
 }
