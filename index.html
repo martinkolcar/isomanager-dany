@@ -7421,7 +7421,8 @@ function initProjSystem() {
     var secs = snap.val() || {};
     // Každý kľúč v isomanager/sections = jeden projekt
     var allProjs = Object.keys(secs).map(function(id) {
-      return { id: id.toLowerCase(), name: id, desc: '' };
+      var niceName = id.charAt(0).toUpperCase() + id.slice(1).toLowerCase();
+      return { id: id.toLowerCase(), name: niceName, desc: '' };
     });
 
     if (isAdmin) {
@@ -7562,7 +7563,7 @@ window.admSwitchTab = function(tab) {
 };
 
 window.admLoadProjects = function() {
-  window.WeldproGet('isomanager_projects').then(function(snap) {
+  window.DBGet('isomanager_projects').then(function(snap) {
     var projs = snap.val() || {};
     var projKeys = Object.keys(projs);
     var list = document.getElementById('adm-proj-list');
