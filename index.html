@@ -27,6 +27,7 @@ window.DBSet = (p, v) => dbSet(dbRef(window.DB, p), v);
 window.DBUpdate = (p, v) => dbUpdate(dbRef(window.DB, p), v);
 window.DBRemove = (p) => dbRemove(dbRef(window.DB, p));
 window.DBGet = (p) => dbGet(dbRef(window.DB, p));
+window.DBOnValue = (p, cb) => dbOnValue(dbRef(window.DB, p), cb);
 
 // AUTH - wait for login before showing app
 onAuthStateChanged(_auth, (user) => {
@@ -7423,7 +7424,7 @@ function loadProjData(projId) {
   });
 
   // Live spooly
-  dbOnValue(dbRef(window.DB, 'spools'), function(snap) {
+  window.DBOnValue('spools', function(snap) {
     var d = snap.val() || {};
     window.spools = window.spools || {};
     Object.keys(d).forEach(function(sec) {
