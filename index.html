@@ -7485,12 +7485,28 @@ function loadProjData(projId) {
     window.WeldproGet('isomanager/sections/' + projId.toUpperCase()).catch(function(){ return {val:function(){return null;}}; })
   ]).then(function(snaps) {
     var projSecs = snaps[0].val() || {};
-    var weldproSecs = snaps[1].val() || {};
-    var merged = Object.assign({}, weldproSecs, projSecs);
+    var weldproData = snaps[1].val() || {};
 
     window._isoUrls = {};
-    window.SECTIONS = Object.keys(merged).filter(function(k) { return k !== '_created'; }).sort();
     window.ISOMETRIES_DATA = {};
+    window._isoData = {};
+
+    // WeldPro: isomanager/sections/DANY obsahuje izometrie priamo
+    // Každá izometria má pole "sec" ktoré určuje sekciu
+    var weldproIsos = weldproData;
+    var secMap = {};
+    Object.keys(weldproIsos).forEach(function(isoKey) {
+      var iso = weldproIsos[isoKey];
+      if (!iso || typeof iso !== 'object') return;
+      var sec = iso.sec || 'GENERAL';
+      if (!secMap[sec]) secMap[sec] = {};
+      secMap[sec][isoKey] = iso;
+    });
+
+    // Zlúč s vlastnými sekciami projektu
+    var merged = Object.assign({}, secMap, projSecs);
+
+    window.SECTIONS = Object.keys(merged).filter(function(k) { return k !== '_created'; }).sort();
     window._isoData = merged;
 
     window.SECTIONS.forEach(function(sec) {
