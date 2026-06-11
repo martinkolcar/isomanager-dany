@@ -7,7 +7,7 @@
 <title>IsoManager Dany</title>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getDatabase, ref as dbRef, set as dbSet, update as dbUpdate, remove as dbRemove, onValue as dbOnValue, push as dbPush, query as dbQuery, orderByChild as dbOrderByChild, startAt as dbStartAt } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+import { getDatabase, ref as dbRef, set as dbSet, update as dbUpdate, remove as dbRemove, onValue as dbOnValue, push as dbPush, query as dbQuery, orderByChild as dbOrderByChild, startAt as dbStartAt, get as dbGet } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, createUserWithEmailAndPassword, updateProfile, deleteUser as fbDeleteUser } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 const _app = initializeApp({
   apiKey: "AIzaSyCI-WXOAfRtM1pvMseR0PFppp5f1WjOkcc",
@@ -26,6 +26,7 @@ window.DBRef = (p) => dbRef(window.DB, p);
 window.DBSet = (p, v) => dbSet(dbRef(window.DB, p), v);
 window.DBUpdate = (p, v) => dbUpdate(dbRef(window.DB, p), v);
 window.DBRemove = (p) => dbRemove(dbRef(window.DB, p));
+window.DBGet = (p) => dbGet(dbRef(window.DB, p));
 
 // AUTH - wait for login before showing app
 onAuthStateChanged(_auth, (user) => {
@@ -7314,40 +7315,27 @@ var _currentProject = null; // { id, name }
 function loadProjectsAndShow() {
   if (!window.DB) { setTimeout(loadProjectsAndShow, 500); return; }
 
-  db.ref('isomanager_projects').once('value', function(snap) {
+  window.DBGet('isomanager_projects').then(function(snap) {
     var projs = snap.val() || {};
     var user = window._currentUser;
     var isAdmin = user && user.email === 'martinkolcar@iso.sk';
 
-    var myProjs = [];
-    Object.entries(projs).forEach(function([id, p]) {
-      if (isAdmin) {
-        myProjs.push({ id, name: p.name, desc: p.desc||'' });
-      } else {
-        // Skontroluj či má user prístup
-        db.ref('isomanager_users/' + user.uid + '/projects').once('value', function(us) {
-          var uprojs = us.val() || [];
-          if (uprojs.includes(id)) myProjs.push({ id, name: p.name, desc: p.desc||'' });
-        });
-      }
-    });
-
-    // Počkaj na async operácie
-    setTimeout(function() {
-      if (!myProjs.length) {
-        if (isAdmin) {
-          openProjSwitch();
-        } else {
-          alert('Nemáte pridelený žiadny projekt. Kontaktujte administrátora.');
-        }
-        return;
-      }
-      if (myProjs.length === 1) {
-        selectProject(myProjs[0]);
-      } else {
+    if (isAdmin) {
+      var myProjs = Object.entries(projs).map(function([id,p]){ return {id,name:p.name,desc:p.desc||''}; });
+      if (!myProjs.length) { openProjSwitch(); return; }
+      if (myProjs.length === 1) { selectProject(myProjs[0]); return; }
+      openProjSwitch();
+    } else {
+      window.DBGet('isomanager_users/' + user.uid + '/projects').then(function(us) {
+        var uprojs = us.val() || [];
+        var myProjs = Object.entries(projs)
+          .filter(function([id]) { return uprojs.includes(id); })
+          .map(function([id,p]){ return {id,name:p.name,desc:p.desc||''}; });
+        if (!myProjs.length) { alert('Nemáte pridelený žiadny projekt.'); return; }
+        if (myProjs.length === 1) { selectProject(myProjs[0]); return; }
         openProjSwitch();
-      }
-    }, isAdmin ? 0 : 300);
+      });
+    }
   });
 }
 
@@ -7362,24 +7350,22 @@ function openProjSwitch() {
   var user = window._currentUser;
   var isAdmin = user && user.email === 'martinkolcar@iso.sk';
 
-  db.ref('isomanager_projects').once('value', function(snap) {
+  window.DBGet('isomanager_projects').then(function(snap) {
     var projs = snap.val() || {};
 
-    var checkProjects = function(userProjIds) {
+    var renderList = function(userProjIds) {
       var myProjs = Object.entries(projs).filter(function([id]) {
         return isAdmin || (userProjIds && userProjIds.includes(id));
-      }).map(function([id, p]) {
-        return { id, name: p.name, desc: p.desc||'' };
-      });
+      }).map(function([id, p]) { return {id, name:p.name, desc:p.desc||''}; });
 
       if (!myProjs.length) {
         wrap.innerHTML = isAdmin
-          ? '<div style="text-align:center;padding:20px;color:var(--text2);font-size:13px">Žiadne projekty.<br><button onclick="switchAdmTab(\'projects\');openAdminPanel()" style="margin-top:10px;padding:8px 16px;background:#4f7cff;color:#fff;border:none;border-radius:5px;cursor:pointer">+ Vytvoriť projekt</button></div>'
+          ? '<div style="text-align:center;padding:20px;color:var(--text2);font-size:13px">Žiadne projekty.<br><button onclick="switchAdmTab(\'projects\');openIsoAdminPanel()" style="margin-top:10px;padding:8px 16px;background:#4f7cff;color:#fff;border:none;border-radius:5px;cursor:pointer">+ Vytvoriť projekt</button></div>'
           : '<div style="text-align:center;padding:20px;color:var(--text2);font-size:13px">Nemáte pridelený žiadny projekt.</div>';
         return;
       }
 
-      wrap.innerHTML = (isAdmin ? '<div style="text-align:right;margin-bottom:12px"><button onclick="openAdminPanel()" style="padding:6px 14px;background:#4f7cff;color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:12px">⚙️ Admin panel</button></div>' : '') +
+      wrap.innerHTML = (isAdmin ? '<div style="text-align:right;margin-bottom:12px"><button onclick="openIsoAdminPanel()" style="padding:6px 14px;background:#4f7cff;color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:12px">⚙️ Admin panel</button></div>' : '') +
         myProjs.map(function(p) {
           var isActive = _currentProject && _currentProject.id === p.id;
           return '<div class="iso-proj-card' + (isActive?' active':'') + '" onclick="selectProject({id:\''+p.id+'\',name:\''+p.name+'\'})">' +
@@ -7391,11 +7377,10 @@ function openProjSwitch() {
         }).join('');
     };
 
-    if (isAdmin) {
-      checkProjects(null);
-    } else {
-      db.ref('isomanager_users/' + user.uid + '/projects').once('value', function(us) {
-        checkProjects(us.val() || []);
+    if (isAdmin) { renderList(null); }
+    else {
+      window.DBGet('isomanager_users/' + user.uid + '/projects').then(function(us) {
+        renderList(us.val() || []);
       });
     }
   });
@@ -7418,15 +7403,13 @@ function loadProjectData() {
   if (!_currentProject || !window.DB) return;
   var base = 'isomanager_project_data/' + _currentProject.id;
 
-  // Načítaj sekcie z projektu + zlúč s legacy WeldPro sekciami
+  // Načítaj obe cesty naraz
   Promise.all([
-    new Promise(r => db.ref(base + '/sections').once('value', r)),
-    new Promise(r => db.ref('isomanager/sections').once('value', r))
+    window.DBGet(base + '/sections'),
+    window.DBGet('isomanager/sections')
   ]).then(function(snaps) {
     var projData = snaps[0].val() || {};
     var legacyData = snaps[1].val() || {};
-
-    // Zlúč — projekt má prednosť, legacy dopĺňa
     var merged = Object.assign({}, legacyData, projData);
 
     window._isoUrls = {};
@@ -7451,11 +7434,10 @@ function loadProjectData() {
   });
 
   // Live listener pre projekt sekcie
-  db.ref(base + '/sections').on('value', function(snap) {
+  dbOnValue(dbRef(window.DB, base + '/sections'), function(snap) {
     var projData = snap.val() || {};
-    // Zlúč s existujúcimi legacy dátami
+    if (!window.ISOMETRIES_DATA) window.ISOMETRIES_DATA = {};
     Object.entries(projData).forEach(function([sec, isos]) {
-      if (!window.ISOMETRIES_DATA) window.ISOMETRIES_DATA = {};
       window.ISOMETRIES_DATA[sec] = Object.keys(isos||{}).map(function(k) {
         return (isos[k]||{}).name || k;
       });
@@ -7468,8 +7450,8 @@ function loadProjectData() {
     if (typeof renderSecTabs === 'function') renderSecTabs();
   });
 
-  // Načítaj spooly z oboch ciest
-  db.ref(base + '/spools').on('value', function(snap) {
+  // Spooly z projektu
+  dbOnValue(dbRef(window.DB, base + '/spools'), function(snap) {
     var d = snap.val() || {};
     if (!window.spools) window.spools = {};
     Object.entries(d).forEach(function([sec, isoData]) {
@@ -7481,12 +7463,12 @@ function loadProjectData() {
     if (typeof curIso !== 'undefined' && curIso) renderSpoolTable();
   });
 
-  db.ref('spools').on('value', function(snap) {
+  // Legacy spooly z WeldPro
+  dbOnValue(dbRef(window.DB, 'spools'), function(snap) {
     var d = snap.val() || {};
     if (!window.spools) window.spools = {};
     Object.entries(d).forEach(function([sec, isoData]) {
       Object.entries(isoData||{}).forEach(function([k, v]) {
-        // Projekt data má prednosť
         if (!window.spools[sec+'/'+k] || Object.keys(window.spools[sec+'/'+k]).length === 0) {
           window.spools[sec+'/'+k] = v || {};
         }
@@ -7522,7 +7504,7 @@ function switchAdmTab(tab) {
 
 function renderAdmProjects() {
   var body = document.getElementById('iso-admin-body');
-  db.ref('isomanager_projects').once('value', function(snap) {
+  window.DBGet('isomanager_projects').then(function(snap) {
     var projs = snap.val() || {};
     var html = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">' +
       '<span style="font-weight:700;font-size:14px">Projekty (' + Object.keys(projs).length + ')</span>' +
@@ -7561,7 +7543,7 @@ function createIsoProject() {
   var desc = (document.getElementById('new-proj-desc').value||'').trim();
   if (!name) { alert('Zadajte názov projektu'); return; }
   var id = name.toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9\-]/g,'').substring(0,30);
-  db.ref('isomanager_projects/' + id).set({ name, desc, created: Date.now() }).then(function() {
+  window.DBSet('isomanager_projects/' + id, { name, desc, created: Date.now() }).then(function() {
     renderAdmProjects();
     alert('✅ Projekt "' + name + '" vytvorený. ID: ' + id);
   });
@@ -7569,8 +7551,8 @@ function createIsoProject() {
 
 function deleteIsoProject(id) {
   if (!confirm('Vymazať projekt "' + id + '"? Všetky dáta budú zmazané!')) return;
-  db.ref('isomanager_projects/' + id).remove();
-  db.ref('isomanager_project_data/' + id).remove();
+  window.DBRemove('isomanager_projects/' + id);
+  window.DBRemove('isomanager_project_data/' + id);
   renderAdmProjects();
 }
 
@@ -7579,61 +7561,53 @@ function renderAdmUsers() {
   body.innerHTML = '<div style="color:var(--text2);padding:10px">Načítavam...</div>';
 
   Promise.all([
-    new Promise(r => db.ref('isomanager_users').once('value', r)),
-    new Promise(r => db.ref('isomanager_projects').once('value', r))
+    window.DBGet('isomanager_users'),
+    window.DBGet('isomanager_projects'),
+    window.DBGet('users')
   ]).then(function(snaps) {
     var users = snaps[0].val() || {};
     var projs = snaps[1].val() || {};
+    var authUsers = snaps[2].val() || {};
     var projList = Object.entries(projs).map(function([id,p]) { return {id, name:p.name}; });
 
-    // Načítaj aj Firebase Auth users cez RTDB profily
-    db.ref('users').once('value', function(usnap) {
-      var authUsers = usnap.val() || {};
+    var html = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">' +
+      '<span style="font-weight:700;font-size:14px">Používatelia IsoManagera</span></div>';
 
-      var html = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">' +
-        '<span style="font-weight:700;font-size:14px">Používatelia IsoManagera</span>' +
+    Object.entries(authUsers).forEach(function([uid, u]) {
+      var isoUser = users[uid] || {};
+      var isoProjs = isoUser.projects || [];
+      var projCheckboxes = projList.map(function(p) {
+        var has = isoProjs.includes(p.id);
+        return '<label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer;margin-bottom:4px">' +
+          '<input type="checkbox" ' + (has?'checked':'') + ' onchange="toggleIsoUserProject(\''+uid+'\',\''+p.id+'\',this.checked)">' +
+          p.name + '</label>';
+      }).join('');
+
+      html += '<div style="border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:8px;display:flex;align-items:flex-start;gap:12px;background:var(--surface)">' +
+        '<div style="flex:1"><strong>' + (u.name||u.email) + '</strong><div style="font-size:11px;color:var(--text2)">' + (u.email||'') + '</div></div>' +
+        '<div><div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:4px">ISO projekty:</div>' + (projCheckboxes || '<span style="font-size:11px;color:var(--text2)">žiadne</span>') + '</div>' +
         '</div>';
-
-      // Zobraz Firebase Auth users a ich prístup k iso projektom
-      Object.entries(authUsers).forEach(function([uid, u]) {
-        var isoUser = users[uid] || {};
-        var isoProjs = isoUser.projects || [];
-        var projCheckboxes = projList.map(function(p) {
-          var has = isoProjs.includes(p.id);
-          return '<label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer;margin-bottom:4px">' +
-            '<input type="checkbox" ' + (has?'checked':'') + ' onchange="toggleIsoUserProject(\''+uid+'\',\''+p.id+'\',this.checked)">' +
-            p.name + '</label>';
-        }).join('');
-
-        html += '<div style="border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:8px;display:flex;align-items:flex-start;gap:12px;background:var(--surface)">' +
-          '<div style="flex:1"><strong>' + (u.name||u.email) + '</strong><div style="font-size:11px;color:var(--text2)">' + (u.email||'') + '</div></div>' +
-          '<div><div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:4px">ISO projekty:</div>' + (projCheckboxes || '<span style="font-size:11px;color:var(--text2)">žiadne</span>') + '</div>' +
-          '</div>';
-      });
-
-      body.innerHTML = html;
     });
+
+    body.innerHTML = html;
   });
 }
 
 function toggleIsoUserProject(uid, projId, add) {
-  db.ref('isomanager_users/' + uid + '/projects').once('value', function(snap) {
+  window.DBGet('isomanager_users/' + uid + '/projects').then(function(snap) {
     var projs = snap.val() || [];
     if (add && !projs.includes(projId)) projs.push(projId);
     if (!add) projs = projs.filter(function(p) { return p !== projId; });
-    db.ref('isomanager_users/' + uid + '/projects').set(projs);
+    window.DBSet('isomanager_users/' + uid + '/projects', projs);
   });
 }
 
 function renderAdmSections() {
   var body = document.getElementById('iso-admin-body');
-  if (!_currentProject) {
-    body.innerHTML = '<div style="padding:20px;color:var(--text2)">Najprv vyberte projekt.</div>';
-    return;
-  }
+  if (!_currentProject) { body.innerHTML = '<div style="padding:20px;color:var(--text2)">Najprv vyberte projekt.</div>'; return; }
   var base = 'isomanager_project_data/' + _currentProject.id + '/sections';
 
-  db.ref(base).once('value', function(snap) {
+  window.DBGet(base).then(function(snap) {
     var secs = snap.val() || {};
     var html = '<div style="margin-bottom:14px;font-weight:700">Sekcie projektu: <span style="color:#4f7cff">' + _currentProject.name + '</span></div>' +
       '<div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">' +
@@ -7662,7 +7636,7 @@ function createIsoSection() {
   if (!_currentProject) { alert('Najprv vyberte projekt'); return; }
   var name = (document.getElementById('new-sec-name').value||'').trim().toUpperCase();
   if (!name) { alert('Zadajte názov sekcie'); return; }
-  db.ref('isomanager_project_data/' + _currentProject.id + '/sections/' + name).update({ _created: Date.now() }).then(function() {
+  window.DBUpdate('isomanager_project_data/' + _currentProject.id + '/sections/' + name, { _created: Date.now() }).then(function() {
     document.getElementById('new-sec-name').value = '';
     renderAdmSections();
   });
@@ -7671,7 +7645,7 @@ function createIsoSection() {
 function deleteIsoSection(sec) {
   if (!_currentProject) return;
   if (!confirm('Vymazať sekciu "' + sec + '" a všetky jej izometrie?')) return;
-  db.ref('isomanager_project_data/' + _currentProject.id + '/sections/' + sec).remove().then(renderAdmSections);
+  window.DBRemove('isomanager_project_data/' + _currentProject.id + '/sections/' + sec).then(renderAdmSections);
 }
 
 // ═══ PREPOJ openAdminPanel v headeri ═══
@@ -7692,10 +7666,10 @@ async function doIsoImport(isoList, forceSec) {
     var isoKey = isoName.replace(/[^a-zA-Z0-9_\-]/g, '_');
     var base = 'isomanager_project_data/' + _currentProject.id + '/sections/' + sec + '/' + isoKey;
 
-    var snap = await db.ref(base).once('value');
+    var snap = await window.DBGet(base);
     if (snap.val()) { skipped++; continue; }
 
-    await db.ref(base).set({ name: isoName, sec, updatedAt: new Date().toISOString(), welds: 0, importedManually: true });
+    await window.DBSet(base, { name: isoName, sec, updatedAt: new Date().toISOString(), welds: 0, importedManually: true });
     added++;
   }
 
