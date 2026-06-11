@@ -34,7 +34,7 @@ onAuthStateChanged(_auth, (user) => {
     window._currentUser = user;
     document.getElementById('loginScreen').style.display='none';
     document.getElementById('app').style.display='flex';
-    document.getElementById('userNameDisplay').textContent = user.displayName || user.email.split('@')[0];
+    document.getElementById('userNameDisplay').textContent = user.displayName || (user.email ? user.email.split('@')[0] : 'User');
     if(user.email === ADMIN_EMAIL){
       document.getElementById('adminBtn').style.display='inline-flex';
     } else {
@@ -7314,12 +7314,12 @@ var _currentProject = null; // { id, name }
 
 function loadProjectsAndShow() {
   if (!window.DB) { setTimeout(loadProjectsAndShow, 500); return; }
+  var user = window._currentUser;
+  if (!user || !user.email) { setTimeout(loadProjectsAndShow, 300); return; }
+  var isAdmin = user.email === 'martinkolcar@iso.sk';
 
   window.DBGet('isomanager_projects').then(function(snap) {
     var projs = snap.val() || {};
-    var user = window._currentUser;
-    var isAdmin = user && user.email === 'martinkolcar@iso.sk';
-
     if (isAdmin) {
       var myProjs = Object.entries(projs).map(function([id,p]){ return {id,name:p.name,desc:p.desc||''}; });
       if (!myProjs.length) { openProjSwitch(); return; }
