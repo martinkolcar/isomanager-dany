@@ -4744,6 +4744,7 @@ let uid = 'u_'+Math.random().toString(36).slice(2,8);
 let curSec = '';
 let curIso = null;
 let spools = {};    // sec/isoKey -> {spId: sp}
+window.spools = spools;
 let baliky = {};
 let nakladky = {};
 let online = {};
@@ -7544,10 +7545,9 @@ function loadProjData(projId) {
   // Live spooly — vlastné z isomanager-4cb2f
   window.DBOnValue('spools', function(snap) {
     var d = snap.val() || {};
-    window.spools = window.spools || {};
     Object.keys(d).forEach(function(sec) {
       Object.keys(d[sec] || {}).forEach(function(k) {
-        window.spools[sec + '/' + k] = d[sec][k] || {};
+        spools[sec + '/' + k] = d[sec][k] || {};
       });
     });
     if (typeof renderSb === 'function') renderSb();
@@ -7556,32 +7556,27 @@ function loadProjData(projId) {
   });
 
   // Spooly z WeldPro — live listener
+  // getSpools(sec, iso) hľadá: spools[sec + '/' + isoKey(iso)]
+  // isoKey(iso) = iso.replace(/[^a-zA-Z0-9_-]/g,'_')
+  // Takže treba uložiť: spools['DANY/G1_1_d_p3-100_1z3'] = {SP1:{...}, SP2:{...}}
   var projIdUpper = (window._activeProjId || '').toUpperCase();
   window.WeldproOnValue('spools/' + projIdUpper, function(snap) {
     var d = snap.val() || {};
-    // Vymaž staré WeldPro spooly
-    Object.keys(window.spools || {}).forEach(function(k) {
-      if (window.spools[k] && window.spools[k].creator === 'WeldPro') delete window.spools[k];
+    // Vymaž staré WeldPro spooly pre tento projekt
+    Object.keys(spools).forEach(function(k) {
+      if (k.indexOf(projIdUpper + '/') === 0) delete spools[k];
     });
-    window.spools = window.spools || {};
-    Object.keys(d).forEach(function(isoKey) {
-      var isoSpools = d[isoKey];
+    // Zapíš nové
+    Object.keys(d).forEach(function(isoKeyRaw) {
+      var isoSpools = d[isoKeyRaw];
       if (!isoSpools || typeof isoSpools !== 'object') return;
-      // Nájdi správny názov izometrie
-      var isoKeyNorm = isoKey;
-      if (window.ISOMETRIES_DATA) {
-        Object.keys(window.ISOMETRIES_DATA).forEach(function(sec) {
-          (window.ISOMETRIES_DATA[sec] || []).forEach(function(isoName) {
-            if (isoName.replace(/[._]/g, '_') === isoKey) isoKeyNorm = isoName;
-          });
-        });
-      }
-      // getSpools hľadá spools['DANY/G1_1_d_p3-100_1z3'] ako objekt {SP1:..., SP2:...}
-      var isoKeyFormatted = isoKeyNorm.replace(/[^a-zA-Z0-9_\-]/g, '_');
-      var key = projIdUpper + '/' + isoKeyFormatted;
-      if (!window.spools[key]) window.spools[key] = {};
-      Object.keys(isoSpools).forEach(function(spoolKey) {
-        window.spools[key][spoolKey] = isoSpools[spoolKey] || {};
+      // isoKeyRaw = 'G1_1_d_p3-100_1z3' (Firebase kľúč)
+      // getSpools očakáva isoKey(isoName) kde isoName je napr. 'G1.1.d.p3-100_1z3'
+      // isoKey('G1.1.d.p3-100_1z3') = 'G1_1_d_p3-100_1z3' — rovnaké!
+      var key = projIdUpper + '/' + isoKeyRaw;
+      spools[key] = {};
+      Object.keys(isoSpools).forEach(function(spoolId) {
+        spools[key][spoolId] = isoSpools[spoolId];
       });
     });
     if (typeof renderSb === 'function') renderSb();
