@@ -74,9 +74,9 @@ const LANGS = {
   de: { spooly:'Spulen',baliky:'Pakete',nakladky:'Lieferungen',prehlad:'Übersicht',novyBalik:'Neues Paket',novaНakladka:'Neue Lieferung',hladaj:'Code suchen z.B. 20080 oder 712-20019...',novy:'Neu',work:'In Arbeit',done:'Fertig',vyvezene:'Versandt',balik:'Paket',nakladka:'Lieferung',datum:'Datum',sekcia:'Abschnitt',izometria:'Isometrie',popis:'Beschreibung',stav:'Status',vytvoril:'Erstellt von',volny:'Frei',vBaliku:'Im Paket',vNakladke:'In Lieferung',online:'online',odoslatObalky:'Umschläge senden',prihlasitSa:'Anmelden',meno:'NAME',heslo:'Passwort',ulozitZmeny:'Speichern',zrusit:'Abbrechen',vytvorit:'Erstellen',vyberIzometriu:'Isometrie wählen',hladajIzo:'Isometrie suchen...',vsetky:'Alle',vyberIzoZoznamu:'Isometrie aus Liste wählen',skenovanie:'Scannen',historiaObalok:'Umschlagverlauf',hladajIzometriu:'Suchen oder manuell eingeben...',odfotit:'Foto aufnehmen',zoSuboru:'Aus Datei',fotky:'Fotos',odhlasitSa:'Abmelden',spoolov:'Spulen',balov:'Pak.',matov:'Mat.',pridatSP:'SP hinzufügen',cisloSP:'SP-Nummer',popisVolitelny:'Beschreibung (optional)',poznamka:'Notiz',baliky_nadpis:'PAKETE',spooly_nadpis:'SPULEN',volnyMaterial:'FREIES MATERIAL',sekcia_nadpis:'ABSCHNITT',balik_nadpis:'PAKET',izometria_nadpis:'ISOMETRIE',zlucit:'Mit anderer Lieferung zusammenführen',spoolov_label:'Spulen' ,logPridatSpool:'Spule hinzugefügt',logUpravilSpool:'Spule bearbeitet',logZmazalSpool:'Spule gelöscht',logVytvorilBalik:'Paket erstellt',logZmazalBalik:'Paket gelöscht',logVytvorilNakladku:'Lieferung erstellt',logArrow:'→'},
   uk: { spooly:'Котушки',baliky:'Пакети',nakladky:'Відправлення',prehlad:'Огляд',novyBalik:'Новий пакет',novaНakladka:'Нове відправлення',hladaj:'Пошук коду напр. 20080 або 712-20019...',novy:'Новий',work:'У виробництві',done:'Готово',vyvezene:'Відправлено',balik:'Пакет',nakladka:'Відправлення',datum:'Дата',sekcia:'Секція',izometria:'Ізометрія',popis:'Опис',stav:'Статус',vytvoril:'Створив',volny:'Вільні',vBaliku:'У пакеті',vNakladke:'У відправленні',online:'онлайн',odoslatObalky:'Надіслати конверти',prihlasitSa:'Увійти',meno:'ІМЯ',heslo:'ПАРОЛЬ',ulozitZmeny:'Зберегти',zrusit:'Скасувати',vytvorit:'Створити',vyberIzometriu:'Вибрати ізометрію',hladajIzo:'Пошук ізометрії...',vsetky:'Всі',vyberIzoZoznamu:'Вибрати ізометрію зі списку',skenovanie:'Сканування',historiaObalok:'Історія конвертів',hladajIzometriu:'Пошук або введення вручну...',odfotit:'Сфотографувати',zoSuboru:'З файлу',fotky:'Фото',odhlasitSa:'Вийти',spoolov:'котушок',balov:'пак.',matov:'мат.',pridatSP:'Додати SP',cisloSP:'Номер SP',popisVolitelny:'Опис (необов\'язково)',poznamka:'Примітка',baliky_nadpis:'ПАКЕТИ',spooly_nadpis:'КОТУШКИ',volnyMaterial:'ВІЛЬНИЙ МАТЕРІАЛ',sekcia_nadpis:'СЕКЦІЯ',balik_nadpis:'ПАКЕТ',izometria_nadpis:'ІЗОМЕТРІЯ',zlucit:'Об\'єднати з іншим відправленням',spoolov_label:'котушок' ,logPridatSpool:'Додав котушку',logUpravilSpool:'Редагував котушку',logZmazalSpool:'Видалив котушку',logVytvorilBalik:'Створив пакет',logZmazalBalik:'Видалив пакет',logVytvorilNakladku:'Створив відправлення',logArrow:'→'}
 };
-let _lang = localStorage.getItem('isoLang')||'sk';
-window.t = function(key){ return (LANGS[_lang]||LANGS.sk)[key]||key; };
-window.setLang = function(lang){ _lang=lang; localStorage.setItem('isoLang',lang); if(typeof window.applyLang==='function') window.applyLang(); };
+window._lang = localStorage.getItem('isoLang')||'sk';
+window.t = function(key){ return (LANGS[window._lang]||LANGS.sk)[key]||key; };
+window.setLang = function(lang){ window._lang=lang; localStorage.setItem('isoLang',lang); if(typeof window.applyLang==='function') window.applyLang(); };
 
 
 // ===== ACTIVITY LOG =====
@@ -6600,7 +6600,7 @@ window.applyLang = function applyLang(){
   const sbi=document.getElementById('sbSearch'); if(sbi) sbi.placeholder=t('hladajIzo');
   const sbf=document.getElementById('sbFilter'); if(sbf&&sbf.options[0]) sbf.options[0].text=t('vsetky');
   const emp=document.getElementById('isoEmptyState'); if(emp) emp.textContent=t('vyberIzoZoznamu');
-  ['sk','en','de','uk'].forEach(l=>{ const b=document.getElementById('langBtn_'+l); if(b){b.style.fontWeight=l===_lang?'900':'400';b.style.opacity=l===_lang?'1':'0.5';} });
+  ['sk','en','de','uk'].forEach(l=>{ const b=document.getElementById('langBtn_'+l); if(b){b.style.fontWeight=l===window._lang?'900':'400';b.style.opacity=l===window._lang?'1':'0.5';} });
   if(typeof renderSb==='function') renderSb();
   if(typeof renderPrehlad==='function') renderPrehlad();
   if(typeof renderNakladkaGrid==='function') renderNakladkaGrid();
@@ -6925,12 +6925,16 @@ window.scanSearchFilter = function(q){
 
 <!-- ADMIN PANEL -->
 <div id="adminPanel" class="modal-overlay" style="display:none">
-  <div class="modal" style="max-width:500px;width:95%">
-    <div class="modal-header">
-      <span>⚙️ Admin — Správa užívateľov</span>
+  <div class="modal" style="max-width:580px;width:95%;max-height:88vh;display:flex;flex-direction:column;overflow:hidden">
+    <div class="modal-header" style="flex-shrink:0">
+      <span>⚙️ Admin panel</span>
       <button class="modal-close" onclick="closeAdminPanel()">✕</button>
     </div>
-    <div style="padding:20px">
+    <div style="display:flex;border-bottom:1px solid var(--border);flex-shrink:0;background:var(--surface2)">
+      <button id="adm-tab-users" onclick="admSwitchTab('users')" style="padding:9px 18px;border:none;background:none;cursor:pointer;font-size:13px;font-weight:700;color:#4f7cff;border-bottom:2px solid #4f7cff">👥 Používatelia</button>
+      <button id="adm-tab-projects" onclick="admSwitchTab('projects')" style="padding:9px 18px;border:none;background:none;cursor:pointer;font-size:13px;color:var(--text2);border-bottom:2px solid transparent">📐 Projekty</button>
+    </div>
+    <div id="adm-body-users" style="padding:20px;overflow-y:auto;flex:1">
       <h4 style="margin:0 0 12px;color:var(--text)">Pridať nového užívateľa</h4>
       <div style="display:flex;gap:8px;margin-bottom:8px">
         <input id="newUserName" placeholder="Meno Priezvisko" style="flex:2;padding:8px 10px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:13px" />
@@ -6948,6 +6952,21 @@ window.scanSearchFilter = function(q){
         <button onclick="runFixBaliky()" style="background:#e57373;color:#fff;border:none;border-radius:6px;padding:8px 16px;font-size:12px;cursor:pointer">🔧 Opraviť balíky bez nakladkaId</button>
         <div id="fixBalikLog" style="font-size:11px;font-family:monospace;margin-top:6px;color:var(--text2)"></div>
       </div>
+    </div>
+    <div id="adm-body-projects" style="display:none;padding:20px;overflow-y:auto;flex:1">
+      <h4 style="margin:0 0 10px;color:var(--text)">Nový projekt</h4>
+      <div style="display:flex;gap:8px;margin-bottom:6px;flex-wrap:wrap">
+        <input id="new-proj-name" placeholder="Názov (napr. SLOVNAFT 2026)" style="flex:2;min-width:150px;padding:8px 10px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:13px">
+        <input id="new-proj-desc" placeholder="Popis (voliteľné)" style="flex:1;min-width:110px;padding:8px 10px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:13px">
+        <button onclick="admCreateProject()" style="padding:8px 16px;background:#27ae60;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:700;font-size:13px">➕</button>
+      </div>
+      <div id="adm-proj-msg" style="font-size:12px;min-height:16px;color:var(--green);margin-bottom:10px;font-family:monospace"></div>
+      <hr style="margin:0 0 12px;border-color:var(--border)">
+      <h4 style="margin:0 0 8px;color:var(--text)">Projekty</h4>
+      <div id="adm-proj-list" style="margin-bottom:16px">Načítavam...</div>
+      <hr style="margin:0 0 12px;border-color:var(--border)">
+      <h4 style="margin:0 0 8px;color:var(--text)">Prístup používateľov</h4>
+      <div id="adm-proj-users">Načítavam...</div>
     </div>
   </div>
 </div>
@@ -7277,45 +7296,122 @@ document.getElementById('import-iso-overlay').addEventListener('click', function
   if (e.target === this) closeImportIsoModal();
 });
 </script>
-<!-- ═══ PROJEKT SWITCH MODAL ═══ -->
-<div id="proj-switch-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9500;align-items:center;justify-content:center">
-  <div style="background:var(--surface);border-radius:12px;width:480px;max-width:94vw;max-height:80vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.4);overflow:hidden">
-    <div style="background:#1a1a2e;color:#fff;padding:16px 20px;display:flex;align-items:center;gap:10px;flex-shrink:0">
-      <span style="font-size:15px;font-weight:700">🔄 Projekty</span>
-      <div style="flex:1"></div>
-      <button onclick="closeProjSwitch()" style="background:none;border:1px solid #444;color:#aaa;padding:4px 12px;border-radius:5px;cursor:pointer">✕</button>
-    </div>
-    <div id="proj-list-wrap" style="flex:1;overflow-y:auto;padding:16px"></div>
-  </div>
-</div>
-
-<!-- ═══ ADMIN PANEL MODAL ═══ -->
-<div id="iso-admin-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9500;align-items:center;justify-content:center">
-  <div style="background:var(--surface);border-radius:12px;width:700px;max-width:96vw;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.4);overflow:hidden">
-    <div style="background:#1a1a2e;color:#fff;padding:14px 20px;display:flex;align-items:center;gap:10px;flex-shrink:0">
-      <span style="font-size:15px;font-weight:700">⚙️ Admin panel</span>
-      <div style="flex:1"></div>
-      <button onclick="document.getElementById('iso-admin-overlay').style.display='none'" style="background:none;border:1px solid #444;color:#aaa;padding:4px 12px;border-radius:5px;cursor:pointer">✕</button>
-    </div>
-    <div style="display:flex;border-bottom:1px solid var(--border);flex-shrink:0">
-      <button id="iadm-tab-projects" onclick="switchAdmTab('projects')" style="padding:10px 18px;border:none;background:none;cursor:pointer;font-size:13px;font-weight:600;color:#4f7cff;border-bottom:2px solid #4f7cff">Projekty</button>
-      <button id="iadm-tab-users"    onclick="switchAdmTab('users')"    style="padding:10px 18px;border:none;background:none;cursor:pointer;font-size:13px;color:var(--text2);border-bottom:2px solid transparent">Používatelia</button>
-      <button id="iadm-tab-sections" onclick="switchAdmTab('sections')" style="padding:10px 18px;border:none;background:none;cursor:pointer;font-size:13px;color:var(--text2);border-bottom:2px solid transparent">Sekcie</button>
-    </div>
-    <div id="iso-admin-body" style="flex:1;overflow-y:auto;padding:18px"></div>
-  </div>
-</div>
-
-<style>
-.iso-proj-card { border:1px solid var(--border); border-radius:8px; padding:14px 16px; margin-bottom:10px; cursor:pointer; transition:all 0.15s; display:flex; align-items:center; gap:12px; background:var(--surface); }
-.iso-proj-card:hover { border-color:#4f7cff; background:#f0f5ff; }
-.iso-proj-card.active { border-color:#27ae60; background:#f0fff8; }
-</style>
-
 <script>
-// ═══ PROJEKT SYSTÉM ═══
-var _currentProject = null; // { id, name }
+// ═══ PROJEKT SYSTÉM — čistá verzia ═══
+window._currentProject = null;
 
+// Tab switcher pre admin panel
+function admSwitchTab(tab) {
+  ['users','projects'].forEach(function(t) {
+    var btn = document.getElementById('adm-tab-'+t);
+    var body = document.getElementById('adm-body-'+t);
+    if (btn) {
+      btn.style.cssText = 'padding:9px 18px;border:none;background:none;cursor:pointer;font-size:13px;border-bottom:2px solid ' +
+        (t===tab ? '#4f7cff;color:#4f7cff;font-weight:700' : 'transparent;color:var(--text2)');
+    }
+    if (body) body.style.display = t===tab ? 'block' : 'none';
+  });
+  if (tab === 'projects') admLoadProjects();
+}
+
+function admLoadProjects() {
+  window.DBGet('isomanager_projects').then(function(snap) {
+    var projs = snap.val() || {};
+    var list = document.getElementById('adm-proj-list');
+    if (!list) return;
+
+    if (!Object.keys(projs).length) {
+      list.innerHTML = '<div style="color:var(--text2);font-size:13px">Žiadne projekty.</div>';
+    } else {
+      list.innerHTML = Object.entries(projs).map(function(kv) { var id=kv[0],p=kv[1];
+        return '<div style="border:1px solid var(--border);border-radius:6px;padding:10px 12px;margin-bottom:6px;display:flex;align-items:center;gap:10px;background:var(--surface)">' +
+          '<div style="flex:1"><strong style="color:var(--text)">' + p.name + '</strong>' +
+          (p.desc ? '<span style="color:var(--text2);font-size:12px"> — ' + p.desc + '</span>' : '') +
+          '<div style="font-size:11px;color:var(--text2);font-family:monospace">ID: ' + id + '</div></div>' +
+          '<button onclick="admDeleteProject(\'' + id + '\')" style="padding:3px 8px;border:1px solid #e57373;color:#e57373;background:none;border-radius:4px;cursor:pointer;font-size:11px">🗑</button>' +
+          '</div>';
+      }).join('');
+    }
+
+    // Načítaj users pre projekt prístup
+    window.DBGet('users').then(function(usnap) {
+      var users = usnap.val() || {};
+      var projList = Object.entries(projs).map(function(kv) { var id=kv[0],p=kv[1]; return {id, name:p.name}; });
+      var pu = document.getElementById('adm-proj-users');
+      if (!pu) return;
+      if (!Object.keys(users).length) { pu.innerHTML = '<div style="color:var(--text2);font-size:12px">Žiadni používatelia.</div>'; return; }
+
+      pu.innerHTML = Object.entries(users).map(function(kvU) { var uid=kvU[0],u=kvU[1];
+        var checkboxes = projList.map(function(p) {
+          return '<label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer;margin-bottom:3px">' +
+            '<input type="checkbox" id="upchk-' + uid + '-' + p.id + '" onchange="admToggleUserProject(\'' + uid + '\',\'' + p.id + '\',this.checked)"> ' + p.name + '</label>';
+        }).join('');
+
+        return '<div style="border:1px solid var(--border);border-radius:6px;padding:10px 12px;margin-bottom:6px;display:flex;align-items:flex-start;gap:10px;background:var(--surface)">' +
+          '<div style="flex:1"><strong>' + (u.name||'') + '</strong> <span style="color:var(--text2);font-size:11px">' + (u.email||'') + '</span></div>' +
+          '<div>' + (checkboxes || '<span style="color:var(--text2);font-size:11px">—</span>') + '</div>' +
+          '</div>';
+      }).join('');
+
+      // Načítaj existujúce prístupy
+      window.DBGet('isomanager_users').then(function(iusnap) {
+        var iusers = iusnap.val() || {};
+        Object.entries(iusers).forEach(function(kvI) { var uid=kvI[0],iu=kvI[1];
+          var projs = iu.projects || [];
+          projs.forEach(function(pid) {
+            var chk = document.getElementById('upchk-' + uid + '-' + pid);
+            if (chk) chk.checked = true;
+          });
+        });
+      });
+    });
+  });
+}
+
+function admCreateProject() {
+  var name = (document.getElementById('new-proj-name').value||'').trim();
+  var desc = (document.getElementById('new-proj-desc').value||'').trim();
+  if (!name) { alert('Zadajte názov projektu'); return; }
+  var id = name.toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9\-]/g,'').substring(0,30);
+  var msg = document.getElementById('adm-proj-msg');
+  window.DBSet('isomanager_projects/' + id, { name: name, desc: desc, created: Date.now() }).then(function() {
+    document.getElementById('new-proj-name').value = '';
+    document.getElementById('new-proj-desc').value = '';
+    if (msg) { msg.textContent = '✅ Projekt "' + name + '" vytvorený (ID: ' + id + ')'; setTimeout(function(){ msg.textContent=''; }, 4000); }
+    admLoadProjects();
+  });
+}
+
+function admDeleteProject(id) {
+  if (!confirm('Vymazať projekt "' + id + '"?')) return;
+  window.DBRemove('isomanager_projects/' + id);
+  window.DBRemove('isomanager_project_data/' + id);
+  admLoadProjects();
+}
+
+function admToggleUserProject(uid, projId, add) {
+  window.DBGet('isomanager_users/' + uid + '/projects').then(function(snap) {
+    var projs = snap.val() || [];
+    if (!Array.isArray(projs)) projs = [];
+    if (add && !projs.includes(projId)) projs.push(projId);
+    if (!add) projs = projs.filter(function(p) { return p !== projId; });
+    window.DBSet('isomanager_users/' + uid + '/projects', projs);
+  });
+}
+
+// Otvorenie admin panelu - prepíše starý openAdminPanel
+window.openAdminPanel = function() {
+  var panel = document.getElementById('adminPanel');
+  if (panel) {
+    panel.style.display = 'flex';
+    panel.classList.add('open');
+    admSwitchTab('users');
+    // Načítaj users (existujúca funkcia)
+    if (typeof window.adminLoadUsers === 'function') window.adminLoadUsers();
+  }
+};
+
+// Projekt výber
 function loadProjectsAndShow() {
   if (!window.DB) { setTimeout(loadProjectsAndShow, 500); return; }
   var user = window._currentUser;
@@ -7324,100 +7420,87 @@ function loadProjectsAndShow() {
 
   window.DBGet('isomanager_projects').then(function(snap) {
     var projs = snap.val() || {};
+    var entries = Object.entries(projs);
+
     if (isAdmin) {
-      var myProjs = Object.entries(projs).map(function([id,p]){ return {id,name:p.name,desc:p.desc||''}; });
-      if (!myProjs.length) {
-        // Admin bez projektov → hneď admin panel
-        setTimeout(openIsoAdminPanel, 300);
+      if (!entries.length) {
+        // Admin, žiadne projekty → otvor admin panel na tab Projekty
+        setTimeout(function() {
+          window.openAdminPanel();
+          setTimeout(function(){ admSwitchTab('projects'); }, 100);
+        }, 400);
         return;
       }
-      if (myProjs.length === 1) { selectProject(myProjs[0]); return; }
-      openProjSwitch();
+      if (entries.length === 1) {
+        selectProject({ id: entries[0][0], name: entries[0][1].name });
+        return;
+      }
+      showProjPicker(entries.map(function(kv){ return {id:kv[0],name:kv[1].name,desc:kv[1].desc||''}; }));
     } else {
       window.DBGet('isomanager_users/' + user.uid + '/projects').then(function(us) {
         var uprojs = us.val() || [];
-        var myProjs = Object.entries(projs)
-          .filter(function([id]) { return uprojs.includes(id); })
-          .map(function([id,p]){ return {id,name:p.name,desc:p.desc||''}; });
-        if (!myProjs.length) { alert('Nemáte pridelený žiadny projekt.'); return; }
+        if (!Array.isArray(uprojs)) uprojs = [];
+        var myProjs = entries.filter(function(kv){ return uprojs.includes(kv[0]); })
+          .map(function(kv){ return {id:kv[0],name:kv[1].name,desc:kv[1].desc||''}; });
+        if (!myProjs.length) { alert('Nemáte pridelený žiadny projekt. Kontaktujte administrátora.'); return; }
         if (myProjs.length === 1) { selectProject(myProjs[0]); return; }
-        openProjSwitch();
+        showProjPicker(myProjs);
       });
     }
   });
 }
 
-function openProjectSwitch() { openProjSwitch(); }
+function showProjPicker(projList) {
+  var overlay = document.getElementById('proj-picker-overlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'proj-picker-overlay';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9990;display:flex;align-items:center;justify-content:center';
+    overlay.innerHTML = '<div style="background:var(--surface);border-radius:12px;width:420px;max-width:94vw;max-height:80vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.4)">' +
+      '<div style="background:#1a1a2e;color:#fff;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0">' +
+      '<span style="font-size:15px;font-weight:700">📐 Výber projektu</span>' +
+      '<button onclick="document.getElementById(\'proj-picker-overlay\').style.display=\'none\'" style="background:none;border:1px solid #444;color:#aaa;padding:3px 10px;border-radius:4px;cursor:pointer">✕</button></div>' +
+      '<div id="proj-picker-list" style="padding:16px;overflow-y:auto"></div></div>';
+    document.body.appendChild(overlay);
+  }
 
-function openProjSwitch() {
-  var overlay = document.getElementById('proj-switch-overlay');
+  var list = document.getElementById('proj-picker-list');
+  window._projPickerList = projList;
+  list.innerHTML = projList.map(function(p, idx) {
+    return '<div onclick="pickProject(' + idx + ')" style="border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:8px;cursor:pointer;display:flex;align-items:center;gap:12px;background:var(--surface)">' +
+      '<div style="width:38px;height:38px;background:#4f7cff;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:16px;flex-shrink:0">📐</div>' +
+      '<div><div style="font-weight:700;color:var(--text)">' + p.name + '</div>' +
+      (p.desc ? '<div style="font-size:12px;color:var(--text2)">' + p.desc + '</div>' : '') + '</div>' +
+      '</div>';
+  }).join('');
+
   overlay.style.display = 'flex';
-  var wrap = document.getElementById('proj-list-wrap');
-  wrap.innerHTML = '<div style="color:var(--text2);font-size:12px;padding:20px;text-align:center">Načítavam...</div>';
-
-  var user = window._currentUser;
-  var isAdmin = user && user.email === 'martinkolcar@iso.sk';
-
-  window.DBGet('isomanager_projects').then(function(snap) {
-    var projs = snap.val() || {};
-
-    var renderList = function(userProjIds) {
-      var myProjs = Object.entries(projs).filter(function([id]) {
-        return isAdmin || (userProjIds && userProjIds.includes(id));
-      }).map(function([id, p]) { return {id, name:p.name, desc:p.desc||''}; });
-
-      if (!myProjs.length) {
-        if (isAdmin) {
-          // Admin bez projektov → rovno admin panel
-          closeProjSwitch();
-          openIsoAdminPanel();
-        } else {
-          wrap.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text2);font-size:13px">Nemáte pridelený žiadny projekt.</div>';
-        }
-        return;
-      }
-
-      wrap.innerHTML = (isAdmin ? '<div style="text-align:right;margin-bottom:12px"><button onclick="openIsoAdminPanel()" style="padding:6px 14px;background:#4f7cff;color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:12px">⚙️ Admin panel</button></div>' : '') +
-        myProjs.map(function(p) {
-          var isActive = _currentProject && _currentProject.id === p.id;
-          return '<div class="iso-proj-card' + (isActive?' active':'') + '" onclick="selectProject({id:\''+p.id+'\',name:\''+p.name+'\'})">' +
-            '<div style="width:40px;height:40px;background:#4f7cff;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:18px;flex-shrink:0">📐</div>' +
-            '<div style="flex:1"><div style="font-weight:700;font-size:14px;color:var(--text)">' + p.name + '</div>' +
-            (p.desc ? '<div style="font-size:12px;color:var(--text2);margin-top:2px">' + p.desc + '</div>' : '') + '</div>' +
-            (isActive ? '<span style="color:#27ae60;font-size:12px;font-weight:700">✓ Aktívny</span>' : '') +
-            '</div>';
-        }).join('');
-    };
-
-    if (isAdmin) { renderList(null); }
-    else {
-      window.DBGet('isomanager_users/' + user.uid + '/projects').then(function(us) {
-        renderList(us.val() || []);
-      });
-    }
-  });
 }
 
-function closeProjSwitch() {
-  document.getElementById('proj-switch-overlay').style.display = 'none';
+function pickProject(idx) {
+  var p = window._projPickerList[idx];
+  if (p) selectProject(p);
 }
 
 function selectProject(proj) {
-  _currentProject = proj;
-  closeProjSwitch();
+  window._currentProject = proj;
+  var overlay = document.getElementById('proj-picker-overlay');
+  if (overlay) overlay.style.display = 'none';
+
+  // Zobraz badge
   var badge = document.getElementById('project-badge');
   var btn = document.getElementById('select-proj-btn');
-  if(badge){ badge.style.display='flex'; }
-  if(btn){ btn.style.display='none'; }
-  document.getElementById('project-badge-name').textContent = proj.name;
+  if (badge) { badge.style.display = 'flex'; document.getElementById('project-badge-name').textContent = proj.name; }
+  if (btn) btn.style.display = 'none';
+
   loadProjectData();
 }
 
 function loadProjectData() {
-  if (!_currentProject || !window.DB) return;
-  var base = 'isomanager_project_data/' + _currentProject.id;
+  if (!window._currentProject || !window.DB) return;
+  var base = 'isomanager_project_data/' + window._currentProject.id;
 
-  // Načítaj obe cesty naraz
+  // Načítaj sekcie z projektu + legacy WeldPro sekcie
   Promise.all([
     window.DBGet(base + '/sections'),
     window.DBGet('isomanager/sections')
@@ -7427,18 +7510,19 @@ function loadProjectData() {
     var merged = Object.assign({}, legacyData, projData);
 
     window._isoUrls = {};
-    window.SECTIONS = Object.keys(merged).sort();
+    window.SECTIONS = Object.keys(merged).filter(function(k){ return k !== '_created'; }).sort();
     window.ISOMETRIES_DATA = {};
     window._isoData = merged;
 
     window.SECTIONS.forEach(function(sec) {
       var isos = merged[sec] || {};
-      window.ISOMETRIES_DATA[sec] = Object.keys(isos).map(function(k) {
+      window.ISOMETRIES_DATA[sec] = Object.keys(isos).filter(function(k){ return k !== '_created'; }).map(function(k) {
         return isos[k].name || k;
       });
-      Object.entries(isos).forEach(function([isoK, isoData]) {
-        if (isoData && isoData.thumbnailUrl) window._isoUrls[sec+'/'+isoK] = isoData.thumbnailUrl;
-        else if (isoData && isoData.thumbnail) window._isoUrls[sec+'/'+isoK] = isoData.thumbnail;
+      Object.entries(isos).forEach(function(kv5) { var isoK=kv5[0],isoData=kv5[1];
+        if (!isoData) return;
+        if (isoData.thumbnailUrl) window._isoUrls[sec+'/'+isoK] = isoData.thumbnailUrl;
+        else if (isoData.thumbnail) window._isoUrls[sec+'/'+isoK] = isoData.thumbnail;
       });
     });
 
@@ -7447,46 +7531,26 @@ function loadProjectData() {
     else renderSb();
   });
 
-  // Live listener pre projekt sekcie
+  // Live update sekcií projektu
   dbOnValue(dbRef(window.DB, base + '/sections'), function(snap) {
-    var projData = snap.val() || {};
+    var d = snap.val() || {};
     if (!window.ISOMETRIES_DATA) window.ISOMETRIES_DATA = {};
-    Object.entries(projData).forEach(function([sec, isos]) {
-      window.ISOMETRIES_DATA[sec] = Object.keys(isos||{}).map(function(k) {
-        return (isos[k]||{}).name || k;
-      });
+    Object.entries(d).forEach(function(kv4) { var sec=kv4[0],isos=kv4[1];
+      if (sec === '_created') return;
       if (!window.SECTIONS.includes(sec)) window.SECTIONS.push(sec);
-      Object.entries(isos||{}).forEach(function([isoK, isoData]) {
-        if (isoData && isoData.thumbnailUrl) window._isoUrls[sec+'/'+isoK] = isoData.thumbnailUrl;
-        else if (isoData && isoData.thumbnail) window._isoUrls[sec+'/'+isoK] = isoData.thumbnail;
+      window.ISOMETRIES_DATA[sec] = Object.keys(isos||{}).filter(function(k){ return k!=='_created'; }).map(function(k){
+        return (isos[k]||{}).name || k;
       });
     });
     if (typeof renderSecTabs === 'function') renderSecTabs();
   });
 
-  // Spooly z projektu
-  dbOnValue(dbRef(window.DB, base + '/spools'), function(snap) {
-    var d = snap.val() || {};
-    if (!window.spools) window.spools = {};
-    Object.entries(d).forEach(function([sec, isoData]) {
-      Object.entries(isoData||{}).forEach(function([k, v]) {
-        window.spools[sec+'/'+k] = v || {};
-      });
-    });
-    renderSb(); renderPrehlad();
-    if (typeof curIso !== 'undefined' && curIso) renderSpoolTable();
-  });
-
-  // Legacy spooly z WeldPro
+  // Spooly
   dbOnValue(dbRef(window.DB, 'spools'), function(snap) {
     var d = snap.val() || {};
     if (!window.spools) window.spools = {};
-    Object.entries(d).forEach(function([sec, isoData]) {
-      Object.entries(isoData||{}).forEach(function([k, v]) {
-        if (!window.spools[sec+'/'+k] || Object.keys(window.spools[sec+'/'+k]).length === 0) {
-          window.spools[sec+'/'+k] = v || {};
-        }
-      });
+    Object.entries(d).forEach(function(kv2) { var sec=kv2[0],isoData=kv2[1];
+      Object.entries(isoData||{}).forEach(function(kv3) { window.spools[sec+'/'+kv3[0]] = kv3[1]||{}; });
     });
     renderSb(); renderPrehlad();
     if (typeof curIso !== 'undefined' && curIso) renderSpoolTable();
@@ -7495,209 +7559,25 @@ function loadProjectData() {
   listenBaliky(); listenNakladky(); listenOnline(); startPresence();
 }
 
-// ═══ ADMIN PANEL ═══
-function openIsoAdminPanel() {
-  document.getElementById('iso-admin-overlay').style.display = 'flex';
-  switchAdmTab('projects');
-}
-
-function openAdminPanel() {
-  openIsoAdminPanel();
-}
-
-function switchAdmTab(tab) {
-  ['projects','users','sections'].forEach(function(t) {
-    var btn = document.getElementById('iadm-tab-'+t);
-    if (btn) btn.style.cssText = 'padding:10px 18px;border:none;background:none;cursor:pointer;font-size:13px;border-bottom:2px solid ' +
-      (t===tab ? '#4f7cff;color:#4f7cff;font-weight:600' : 'transparent;color:var(--text2)');
-  });
-  if (tab === 'projects') renderAdmProjects();
-  else if (tab === 'users') renderAdmUsers();
-  else renderAdmSections();
-}
-
-function renderAdmProjects() {
-  var body = document.getElementById('iso-admin-body');
-  window.DBGet('isomanager_projects').then(function(snap) {
-    var projs = snap.val() || {};
-    var html = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">' +
-      '<span style="font-weight:700;font-size:14px">Projekty (' + Object.keys(projs).length + ')</span>' +
-      '<button onclick="showAddProjForm()" style="padding:6px 14px;background:#4f7cff;color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:13px">+ Nový projekt</button>' +
-      '</div>' +
-      '<div id="add-proj-form" style="display:none;background:var(--surface2);border-radius:8px;padding:14px;margin-bottom:14px">' +
-      '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
-      '<input id="new-proj-name" placeholder="Názov projektu (napr. SLOVNAFT 2026)" style="flex:1;min-width:160px;padding:8px 10px;border:1px solid var(--border);border-radius:5px;font-size:13px;background:var(--surface)">' +
-      '<input id="new-proj-desc" placeholder="Popis (voliteľné)" style="flex:1;min-width:160px;padding:8px 10px;border:1px solid var(--border);border-radius:5px;font-size:13px;background:var(--surface)">' +
-      '<button onclick="createIsoProject()" style="padding:8px 16px;background:#27ae60;color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:13px">Vytvoriť</button>' +
-      '</div></div>';
-
-    if (!Object.keys(projs).length) {
-      html += '<div style="text-align:center;padding:30px;color:var(--text2);font-size:13px">Žiadne projekty.</div>';
-    } else {
-      Object.entries(projs).forEach(function([id, p]) {
-        html += '<div style="border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:8px;display:flex;align-items:center;gap:12px;background:var(--surface)">' +
-          '<div style="flex:1"><strong style="color:var(--text)">' + p.name + '</strong>' +
-          (p.desc ? '<span style="color:var(--text2);font-size:12px;margin-left:8px">' + p.desc + '</span>' : '') +
-          '<div style="font-size:11px;color:var(--text2);font-family:monospace;margin-top:2px">ID: ' + id + '</div></div>' +
-          '<button onclick="deleteIsoProject(\''+id+'\')" style="padding:4px 10px;border:1px solid #e74c3c;color:#e74c3c;background:none;border-radius:4px;cursor:pointer;font-size:12px">🗑</button>' +
-          '</div>';
-      });
-    }
-    body.innerHTML = html;
-  });
-}
-
-function showAddProjForm() {
-  var f = document.getElementById('add-proj-form');
-  f.style.display = f.style.display === 'none' ? 'block' : 'none';
-}
-
-function createIsoProject() {
-  var name = (document.getElementById('new-proj-name').value||'').trim();
-  var desc = (document.getElementById('new-proj-desc').value||'').trim();
-  if (!name) { alert('Zadajte názov projektu'); return; }
-  var id = name.toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9\-]/g,'').substring(0,30);
-  window.DBSet('isomanager_projects/' + id, { name, desc, created: Date.now() }).then(function() {
-    renderAdmProjects();
-    alert('✅ Projekt "' + name + '" vytvorený. ID: ' + id);
-  });
-}
-
-function deleteIsoProject(id) {
-  if (!confirm('Vymazať projekt "' + id + '"? Všetky dáta budú zmazané!')) return;
-  window.DBRemove('isomanager_projects/' + id);
-  window.DBRemove('isomanager_project_data/' + id);
-  renderAdmProjects();
-}
-
-function renderAdmUsers() {
-  var body = document.getElementById('iso-admin-body');
-  body.innerHTML = '<div style="color:var(--text2);padding:10px">Načítavam...</div>';
-
-  Promise.all([
-    window.DBGet('isomanager_users'),
-    window.DBGet('isomanager_projects'),
-    window.DBGet('users')
-  ]).then(function(snaps) {
-    var users = snaps[0].val() || {};
-    var projs = snaps[1].val() || {};
-    var authUsers = snaps[2].val() || {};
-    var projList = Object.entries(projs).map(function([id,p]) { return {id, name:p.name}; });
-
-    var html = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">' +
-      '<span style="font-weight:700;font-size:14px">Používatelia IsoManagera</span></div>';
-
-    Object.entries(authUsers).forEach(function([uid, u]) {
-      var isoUser = users[uid] || {};
-      var isoProjs = isoUser.projects || [];
-      var projCheckboxes = projList.map(function(p) {
-        var has = isoProjs.includes(p.id);
-        return '<label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer;margin-bottom:4px">' +
-          '<input type="checkbox" ' + (has?'checked':'') + ' onchange="toggleIsoUserProject(\''+uid+'\',\''+p.id+'\',this.checked)">' +
-          p.name + '</label>';
-      }).join('');
-
-      html += '<div style="border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:8px;display:flex;align-items:flex-start;gap:12px;background:var(--surface)">' +
-        '<div style="flex:1"><strong>' + (u.name||u.email) + '</strong><div style="font-size:11px;color:var(--text2)">' + (u.email||'') + '</div></div>' +
-        '<div><div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:4px">ISO projekty:</div>' + (projCheckboxes || '<span style="font-size:11px;color:var(--text2)">žiadne</span>') + '</div>' +
-        '</div>';
-    });
-
-    body.innerHTML = html;
-  });
-}
-
-function toggleIsoUserProject(uid, projId, add) {
-  window.DBGet('isomanager_users/' + uid + '/projects').then(function(snap) {
-    var projs = snap.val() || [];
-    if (add && !projs.includes(projId)) projs.push(projId);
-    if (!add) projs = projs.filter(function(p) { return p !== projId; });
-    window.DBSet('isomanager_users/' + uid + '/projects', projs);
-  });
-}
-
-function renderAdmSections() {
-  var body = document.getElementById('iso-admin-body');
-  if (!_currentProject) { body.innerHTML = '<div style="padding:20px;color:var(--text2)">Najprv vyberte projekt.</div>'; return; }
-  var base = 'isomanager_project_data/' + _currentProject.id + '/sections';
-
-  window.DBGet(base).then(function(snap) {
-    var secs = snap.val() || {};
-    var html = '<div style="margin-bottom:14px;font-weight:700">Sekcie projektu: <span style="color:#4f7cff">' + _currentProject.name + '</span></div>' +
-      '<div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">' +
-      '<input id="new-sec-name" placeholder="Nová sekcia (napr. G1, G7, NM)" style="flex:1;min-width:120px;padding:7px 10px;border:1px solid var(--border);border-radius:5px;font-size:13px;background:var(--surface)">' +
-      '<button onclick="createIsoSection()" style="padding:7px 14px;background:#10b981;color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:13px">+ Pridať sekciu</button>' +
-      '</div>';
-
-    if (!Object.keys(secs).length) {
-      html += '<div style="text-align:center;padding:20px;color:var(--text2);font-size:13px">Žiadne sekcie. Vytvorte prvú.</div>';
-    } else {
-      Object.keys(secs).sort().forEach(function(sec) {
-        var isoCount = Object.keys(secs[sec]||{}).length;
-        html += '<div style="border:1px solid var(--border);border-radius:6px;padding:10px 14px;margin-bottom:6px;display:flex;align-items:center;gap:10px;background:var(--surface)">' +
-          '<span style="font-weight:700;font-family:monospace;color:var(--text)">' + sec + '</span>' +
-          '<span style="font-size:12px;color:var(--text2)">' + isoCount + ' izometrií</span>' +
-          '<div style="flex:1"></div>' +
-          '<button onclick="deleteIsoSection(\''+sec+'\')" style="padding:3px 8px;border:1px solid #e74c3c;color:#e74c3c;background:none;border-radius:4px;cursor:pointer;font-size:11px">🗑</button>' +
-          '</div>';
-      });
-    }
-    body.innerHTML = html;
-  });
-}
-
-function createIsoSection() {
-  if (!_currentProject) { alert('Najprv vyberte projekt'); return; }
-  var name = (document.getElementById('new-sec-name').value||'').trim().toUpperCase();
-  if (!name) { alert('Zadajte názov sekcie'); return; }
-  window.DBUpdate('isomanager_project_data/' + _currentProject.id + '/sections/' + name, { _created: Date.now() }).then(function() {
-    document.getElementById('new-sec-name').value = '';
-    renderAdmSections();
-  });
-}
-
-function deleteIsoSection(sec) {
-  if (!_currentProject) return;
-  if (!confirm('Vymazať sekciu "' + sec + '" a všetky jej izometrie?')) return;
-  window.DBRemove('isomanager_project_data/' + _currentProject.id + '/sections/' + sec).then(renderAdmSections);
-}
-
-// ═══ PREPOJ openAdminPanel v headeri ═══
-// Override existujúceho adminBtn
-document.getElementById('adminBtn').onclick = openAdminPanel;
-
-// ═══ IMPORT IZOMETRIÍ - aktualizuj aby používal projekt ═══
+// Import izometrií — do projektu
 async function doIsoImport(isoList, forceSec) {
   if (!window.DB) { alert('Firebase nie je pripojená'); return; }
-  if (!_currentProject) { alert('Najprv vyberte projekt'); return; }
-
+  if (!window._currentProject) { alert('Najprv vyberte projekt'); return; }
   var added = 0, skipped = 0;
-
   for (var i = 0; i < isoList.length; i++) {
     var isoName = isoList[i].trim();
     if (!isoName) continue;
     var sec = forceSec || guessSecFromIsoName(isoName);
     var isoKey = isoName.replace(/[^a-zA-Z0-9_\-]/g, '_');
-    var base = 'isomanager_project_data/' + _currentProject.id + '/sections/' + sec + '/' + isoKey;
-
-    var snap = await window.DBGet(base);
+    var path = 'isomanager_project_data/' + window._currentProject.id + '/sections/' + sec + '/' + isoKey;
+    var snap = await window.DBGet(path);
     if (snap.val()) { skipped++; continue; }
-
-    await window.DBSet(base, { name: isoName, sec, updatedAt: new Date().toISOString(), welds: 0, importedManually: true });
+    await window.DBSet(path, { name: isoName, sec: sec, updatedAt: new Date().toISOString(), welds: 0, importedManually: true });
     added++;
   }
-
   alert('✅ Import hotový!\n\n➕ Pridaných: ' + added + '\n⏭ Preskočených: ' + skipped);
-  if (typeof loadProjectData === 'function') loadProjectData();
+  loadProjectData();
 }
-
-// ═══ Modal event listeners ═══
-document.getElementById('proj-switch-overlay').addEventListener('click', function(e) {
-  if (e.target === this) closeProjSwitch();
-});
-document.getElementById('iso-admin-overlay').addEventListener('click', function(e) {
-  if (e.target === this) this.style.display = 'none';
-});
 </script>
 </body>
 </html>
