@@ -7560,8 +7560,19 @@ function loadProjData(projId) {
     Object.keys(d).forEach(function(isoKey) {
       var isoSpools = d[isoKey];
       if (!isoSpools || typeof isoSpools !== 'object') return;
-      // Konvertuj podčiarkovníky na bodky pre názov izometrie
-      var isoKeyDots = isoKey.replace(/_/g, '.');
+      // Konvertuj podčiarkovníky na bodky — ale nie posledný pred číslom strany (napr. _1z3)
+      var isoKeyDots = isoKey.replace(/_(?=\d*[a-zA-Z])/g, '.').replace(/_(?!\d*z\d)/g, '.');
+      // Jednoduchšie: použi pôvodný názov z isomanager/sections
+      var isoKeyDots2 = window._isoData && window._isoData[isoKey] ? isoKey : isoKey.replace(/_/g, '.');
+      // Najspoľahlivejšie — hľadaj zhodu v ISOMETRIES_DATA
+      var isoKeyDots = isoKey;
+      if (window.ISOMETRIES_DATA) {
+        Object.keys(window.ISOMETRIES_DATA).forEach(function(sec) {
+          (window.ISOMETRIES_DATA[sec] || []).forEach(function(isoName) {
+            if (isoName.replace(/[._]/g, '_') === isoKey) isoKeyDots = isoName;
+          });
+        });
+      }
       Object.keys(isoSpools).forEach(function(spoolKey) {
         var spool = isoSpools[spoolKey] || {};
         // Ulož pod oboma kľúčmi
