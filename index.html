@@ -7,6 +7,7 @@
 <title>IsoManager Dany</title>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getFirestore, collection, doc, onSnapshot, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getDatabase, ref as dbRef, set as dbSet, update as dbUpdate, remove as dbRemove, onValue as dbOnValue, push as dbPush, query as dbQuery, orderByChild as dbOrderByChild, startAt as dbStartAt, get as dbGet } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, createUserWithEmailAndPassword, updateProfile, deleteUser as fbDeleteUser } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 const _app = initializeApp({
@@ -35,7 +36,70 @@ const _weldproApp = initializeApp({
 window.WeldproDB = getDatabase(_weldproApp);
 window.WeldproGet = (p) => dbGet(dbRef(window.WeldproDB, p));
 window.WeldproOnValue = (p, cb) => dbOnValue(dbRef(window.WeldproDB, p), cb);
+window.WeldproSet = (p, v) => dbSet(dbRef(window.WeldproDB, p), v);
+
+// WeldPro Firestore - pre signály a projekty
+window.WeldproFS = getFirestore(_weldproApp);
 const ADMIN_EMAIL = 'martinkolcar@iso.sk';
+
+// ============= WELDPRO SYNC LISTENER =============
+function startWeldProSyncListeners() {
+  if (!window.WeldproFS) return;
+
+  // 1. Listener na vymazanie izometrie
+  onSnapshot(doc(window.WeldproFS, 'iso_delete_signal', 'latest'), function(snap) {
+    if (!snap.exists()) return;
+    var data = snap.data();
+    var isoToDelete = data.iso;
+    var age = Date.now() - (data.at ? new Date(data.at).getTime() : 0);
+    if (!isoToDelete || age > 300000) return; // 5 minút
+
+    console.log('🗑️ IsoManager: mazanie izometrie:', isoToDelete);
+    
+    // Nájdi a vymaž v RTDB
+    window.WeldproGet('isomanager/sections').then(function(snap2) {
+      if (!snap2 || !snap2.val()) return;
+      var sections = snap2.val();
+      var promises = [];
+      Object.keys(sections).forEach(function(proj) {
+        Object.keys(sections[proj]||{}).forEach(function(isoKey) {
+          var isoData = sections[proj][isoKey];
+          var name = (isoData && isoData.name) || isoKey;
+          // Normalizuj - oreži _1z3 atď.
+          var normKey = isoKey.replace(/_\d+z\d+$/i,'').replace(/-\d+z\d+$/i,'');
+          var normName = name.replace(/_\d+z\d+$/i,'').replace(/-\d+z\d+$/i,'');
+          if (normKey === isoToDelete || normName === isoToDelete || isoKey === isoToDelete) {
+            console.log('🗑️ IsoManager: mazanie z RTDB:', proj, isoKey);
+            promises.push(window.WeldproSet('isomanager/sections/' + proj + '/' + isoKey, null));
+          }
+        });
+      });
+      return Promise.all(promises);
+    }).then(function() {
+      // Obnov zobrazenie
+      if (typeof loadData === 'function') loadData();
+      else if (typeof renderSb === 'function') renderSb();
+    }).catch(function(e) { console.warn('IsoManager delete error:', e); });
+  });
+
+  // 2. Listener na nové/zmenené projekty z WeldPro
+  window.WeldproOnValue('isomanager/sections', function(snap) {
+    if (!snap || !snap.val()) return;
+    var data = snap.val();
+    // Obnov ISOMETRIES_DATA
+    window.SECTIONS = window.SECTIONS || [];
+    Object.keys(data).forEach(function(proj) {
+      var isos = data[proj] || {};
+      window.ISOMETRIES_DATA = window.ISOMETRIES_DATA || {};
+      window.ISOMETRIES_DATA[proj] = Object.keys(isos).map(function(k) { return isos[k].name || k; });
+    });
+    if (typeof renderSb === 'function') renderSb();
+    console.log('🔄 IsoManager: sekcie aktualizované z WeldPro');
+  });
+
+  console.log('✅ WeldPro sync listenery aktívne');
+}
+
 window.DBRef = (p) => dbRef(window.DB, p);
 window.DBSet = (p, v) => dbSet(dbRef(window.DB, p), v);
 window.DBUpdate = (p, v) => dbUpdate(dbRef(window.DB, p), v);
@@ -396,6 +460,8 @@ window.loadIsoDataFromFirebase = function(){
     if(typeof renderSecTabs === 'function') renderSecTabs();
     if(window.SECTIONS.length > 0 && !curSec) switchSec(window.SECTIONS[0]);
     else renderSb();
+    // Spusti WeldPro sync
+    startWeldProSyncListeners();
   });
 };
 
