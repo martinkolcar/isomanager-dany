@@ -465,10 +465,13 @@ window.loadIsoDataFromFirebase = function(){
       window.ISOMETRIES_DATA = {};
     }
     if(typeof renderSecTabs === 'function') renderSecTabs();
-    if(window.SECTIONS.length > 0 && !curSec) switchSec(window.SECTIONS[0]);
-    else renderSb();
+    if(window.SECTIONS.length > 0 && !curSec) {
+      switchSec(window.SECTIONS[0]);
+      // Počkaj na spooly a znova renderuj
+      setTimeout(function(){ if(typeof renderSb === 'function') renderSb(); }, 1500);
+    } else renderSb();
     // Spusti WeldPro sync
-    startWeldProSyncListeners();
+    window.startWeldProSyncListeners();
   });
 };
 
