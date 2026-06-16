@@ -99,7 +99,8 @@ window.startWeldProSyncListeners = function startWeldProSyncListeners() {
         else if (d && d.thumbnail) window._isoUrls[proj+'/'+isoK] = d.thumbnail;
       });
     });
-    if (typeof renderSb === 'function') renderSb();
+    // Nerobíme renderSb() aby sme neprepísali spools - len aktualizuj ISOMETRIES_DATA
+    // renderSb sa zavolá sám cez db listener
     console.log('🔄 IsoManager: sekcie aktualizované z WeldPro');
   });
 
