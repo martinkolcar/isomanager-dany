@@ -4906,12 +4906,12 @@ function initApp(){
     if(typeof window.loadProjectsAndShow === 'function') window.loadProjectsAndShow();
     else window.loadIsoDataFromFirebase();
   }, 100);
-  // listen spools
+  // Spools sa načítavajú cez REST API - tu len merge
   db.ref('spools').on('value', snap => {
     const d = snap.val()||{};
     Object.entries(d).forEach(([sec, isoData]) => {
       Object.entries(isoData||{}).forEach(([k,v]) => {
-        spools[sec+'/'+k] = v||{};
+        spools[sec+'/'+k] = Object.assign(spools[sec+'/'+k]||{}, v||{});
       });
     });
     renderSb(); renderPrehlad();
