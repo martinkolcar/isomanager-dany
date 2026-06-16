@@ -469,20 +469,22 @@ window.loadIsoDataFromFirebase = function(){
     else renderSb();
     // Spusti WeldPro sync
     window.startWeldProSyncListeners();
-    // Načítaj spooly cez REST - obíde SDK cache
-    fetch('https://isomanager-4cb2f-default-rtdb.europe-west1.firebasedatabase.app/spools.json')
-      .then(function(r){ return r.json(); })
-      .then(function(d){
-        if (!d) return;
-        Object.keys(d).forEach(function(sec){
-          Object.keys(d[sec]||{}).forEach(function(k){
-            window.spools[sec+'/'+k] = d[sec][k]||{};
+    // Načítaj spooly cez REST po 2 sekundách - keď sú všetky listenery hotové
+    setTimeout(function() {
+      fetch('https://isomanager-4cb2f-default-rtdb.europe-west1.firebasedatabase.app/spools.json')
+        .then(function(r){ return r.json(); })
+        .then(function(d){
+          if (!d) return;
+          Object.keys(d).forEach(function(sec){
+            Object.keys(d[sec]||{}).forEach(function(k){
+              window.spools[sec+'/'+k] = d[sec][k]||{};
+            });
           });
-        });
-        if(typeof renderSb === 'function') renderSb();
-        if(typeof renderSpoolTable === 'function' && curIso) renderSpoolTable();
-        console.log('✅ Spooly načítané cez REST:', Object.keys(window.spools));
-      }).catch(function(e){ console.warn('Spools REST error:', e); });
+          if(typeof renderSb === 'function') renderSb();
+          if(typeof renderSpoolTable === 'function' && curIso) renderSpoolTable();
+          console.log('✅ Spooly načítané cez REST:', Object.keys(window.spools));
+        }).catch(function(e){ console.warn('Spools REST error:', e); });
+    }, 2000);
   });
 };
 
