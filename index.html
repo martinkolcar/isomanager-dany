@@ -7545,7 +7545,8 @@ window.switchProj = function(idx) {
   window.SECTIONS = [];
   window.ISOMETRIES_DATA = {};
   window._isoData = {};
-  window.spools = {};
+  // NEresetuj window.spools - spooly sa načítajú async a reset by ich stratil
+  // window.spools = {};
   // Nastav aktívny projekt
   window._activeProjId = p.id;
   renderProjTabs(window._projTabData, p.id);
