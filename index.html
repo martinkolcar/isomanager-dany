@@ -43,7 +43,7 @@ window.WeldproFS = getFirestore(_weldproApp);
 const ADMIN_EMAIL = 'martinkolcar@iso.sk';
 
 // ============= WELDPRO SYNC LISTENER =============
-window.startWeldProSyncListeners = function startWeldProSyncListeners() {
+function startWeldProSyncListeners() {
   if (!window.WeldproFS) return;
 
   // 1. Listener na vymazanie izometrie
@@ -86,12 +86,18 @@ window.startWeldProSyncListeners = function startWeldProSyncListeners() {
   window.WeldproOnValue('isomanager/sections', function(snap) {
     if (!snap || !snap.val()) return;
     var data = snap.val();
-    // Obnov ISOMETRIES_DATA
     window.SECTIONS = window.SECTIONS || [];
+    window._isoUrls = window._isoUrls || {};
     Object.keys(data).forEach(function(proj) {
       var isos = data[proj] || {};
       window.ISOMETRIES_DATA = window.ISOMETRIES_DATA || {};
       window.ISOMETRIES_DATA[proj] = Object.keys(isos).map(function(k) { return isos[k].name || k; });
+      // Aktualizuj thumbnail URLs
+      Object.keys(isos).forEach(function(isoK) {
+        var d = isos[isoK];
+        if (d && d.thumbnailUrl) window._isoUrls[proj+'/'+isoK] = d.thumbnailUrl;
+        else if (d && d.thumbnail) window._isoUrls[proj+'/'+isoK] = d.thumbnail;
+      });
     });
     if (typeof renderSb === 'function') renderSb();
     console.log('🔄 IsoManager: sekcie aktualizované z WeldPro');
