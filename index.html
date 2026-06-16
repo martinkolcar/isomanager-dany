@@ -43,7 +43,7 @@ window.WeldproFS = getFirestore(_weldproApp);
 const ADMIN_EMAIL = 'martinkolcar@iso.sk';
 
 // ============= WELDPRO SYNC LISTENER =============
-function startWeldProSyncListeners() {
+window.startWeldProSyncListeners = function startWeldProSyncListeners() {
   if (!window.WeldproFS) return;
 
   // 1. Listener na vymazanie izometrie
