@@ -484,7 +484,7 @@ window.loadIsoDataFromFirebase = function(){
           if(typeof renderSpoolTable === 'function' && curIso) renderSpoolTable();
           console.log('✅ Spooly načítané cez REST:', Object.keys(window.spools));
         }).catch(function(e){ console.warn('Spools REST error:', e); });
-    }, 2000);
+    }, 500);
   });
 };
 
@@ -4908,7 +4908,7 @@ function initApp(){
     if(typeof window.loadProjectsAndShow === 'function') window.loadProjectsAndShow();
     else window.loadIsoDataFromFirebase();
   }, 100);
-  // Spools sa načítavajú cez REST API - tu len merge
+  // SDK listener - len merge, nevolaj renderSb (REST to urobí)
   db.ref('spools').on('value', snap => {
     const d = snap.val()||{};
     Object.entries(d).forEach(([sec, isoData]) => {
@@ -4916,8 +4916,6 @@ function initApp(){
         spools[sec+'/'+k] = Object.assign(spools[sec+'/'+k]||{}, v||{});
       });
     });
-    renderSb(); renderPrehlad();
-    if(curIso) renderSpoolTable();
   });
 }
 
