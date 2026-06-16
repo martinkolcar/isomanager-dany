@@ -465,13 +465,24 @@ window.loadIsoDataFromFirebase = function(){
       window.ISOMETRIES_DATA = {};
     }
     if(typeof renderSecTabs === 'function') renderSecTabs();
-    if(window.SECTIONS.length > 0 && !curSec) {
-      switchSec(window.SECTIONS[0]);
-      // Počkaj na spooly a znova renderuj
-      setTimeout(function(){ if(typeof renderSb === 'function') renderSb(); }, 1500);
-    } else renderSb();
+    if(window.SECTIONS.length > 0 && !curSec) switchSec(window.SECTIONS[0]);
+    else renderSb();
     // Spusti WeldPro sync
     window.startWeldProSyncListeners();
+    // Načítaj spooly cez REST - obíde SDK cache
+    fetch('https://isomanager-4cb2f-default-rtdb.europe-west1.firebasedatabase.app/spools.json')
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        if (!d) return;
+        Object.keys(d).forEach(function(sec){
+          Object.keys(d[sec]||{}).forEach(function(k){
+            window.spools[sec+'/'+k] = d[sec][k]||{};
+          });
+        });
+        if(typeof renderSb === 'function') renderSb();
+        if(typeof renderSpoolTable === 'function' && curIso) renderSpoolTable();
+        console.log('✅ Spooly načítané cez REST:', Object.keys(window.spools));
+      }).catch(function(e){ console.warn('Spools REST error:', e); });
   });
 };
 
