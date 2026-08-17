@@ -439,8 +439,8 @@ window.ISOMETRIES_DATA = {};
 window.SECTIONS = [];
 
 window.loadIsoDataFromFirebase = function(){
-  if(!window.DB) return;
-  db.ref('isomanager/sections').on('value', snap => {
+  if(!window.WeldproDB) return;
+  dbOnValue(dbRef(window.WeldproDB, 'isomanager/sections'), snap => {
     // Ulož do cache vždy
     window._legacyIsoData = snap.val() || {};
 
