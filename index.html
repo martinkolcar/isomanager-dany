@@ -5323,7 +5323,7 @@ function buildNakSpList(q, sec){
   if(!el) return;
   el.innerHTML = '';
   const ql = q.toLowerCase();
-  const all = getAllSpools().filter(s => !s.nakladkaId && s.vyvezene);
+  const all = getAllSpools().filter(s => !s.nakladkaId && s.vyvezene && !s.balikId);
   let any = false;
 
   all.forEach(sp => {
@@ -5985,7 +5985,7 @@ function buildEnkSpList(q, sec){
   el.innerHTML='';
   const ql = q.toLowerCase();
   // show vyvezene free spools + spools not in THIS nakladka
-  const all = getAllSpools().filter(s=>s.vyvezene&&(!s.nakladkaId||s.nakladkaId===''||s.nakladkaId===editNakId));
+  const all = getAllSpools().filter(s=>s.vyvezene&&(!s.nakladkaId||s.nakladkaId===''||s.nakladkaId===editNakId)&&!s.balikId);
   // exclude already in this nakladka
   const nk = nakladky[editNakId]||{};
   const alreadyIn = new Set((nk.spools||[]));
