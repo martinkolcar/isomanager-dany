@@ -6081,11 +6081,11 @@ function addMatRow(containerId, data){
   const row = document.createElement('div');
   row.className = 'mat-row';
   row.innerHTML = `
-    <input class="mat-inp" placeholder="Typ (napr. Pipe, Fitting)" style="flex:2;min-width:100px" value="${data&&data.typ||''}" data-field="typ" />
-    <input class="mat-inp" placeholder="Rozmer (napr. 219,1x6)" style="flex:2;min-width:90px" value="${data&&data.rozmer||''}" data-field="rozmer" />
-    <input class="mat-inp" placeholder="Materiál (napr. 1.4307)" style="flex:2;min-width:90px" value="${data&&data.material||''}" data-field="material" />
-    <input class="mat-inp" placeholder="ks" style="width:50px" value="${data&&data.ks||''}" data-field="ks" type="number" min="0" />
-    <input class="mat-inp" placeholder="m" style="width:50px" value="${data&&data.metre||''}" data-field="metre" type="number" min="0" step="0.1" />
+    <input class="mat-inp" placeholder="Typ (napr. Pipe, Fitting)" style="flex:2;min-width:100px" value="${data&&data.typ||''}" data-field="typ" autocomplete="off" name="mat-typ-${Date.now()}-${Math.random().toString(36).slice(2)}" />
+    <input class="mat-inp" placeholder="Rozmer (napr. 219,1x6)" style="flex:2;min-width:90px" value="${data&&data.rozmer||''}" data-field="rozmer" autocomplete="off" name="mat-rozmer-${Date.now()}-${Math.random().toString(36).slice(2)}" />
+    <input class="mat-inp" placeholder="Materiál (napr. 1.4307)" style="flex:2;min-width:90px" value="${data&&data.material||''}" data-field="material" autocomplete="off" name="mat-material-${Date.now()}-${Math.random().toString(36).slice(2)}" />
+    <input class="mat-inp" placeholder="ks" style="width:50px" value="${data&&data.ks||''}" data-field="ks" type="number" min="0" autocomplete="off" name="mat-ks-${Date.now()}-${Math.random().toString(36).slice(2)}" />
+    <input class="mat-inp" placeholder="m" style="width:50px" value="${data&&data.metre||''}" data-field="metre" type="number" min="0" step="0.1" autocomplete="off" name="mat-metre-${Date.now()}-${Math.random().toString(36).slice(2)}" />
     <button class="mat-del" onclick="this.parentElement.remove()" title="Odstrániť">✕</button>`;
   container.appendChild(row);
 }
@@ -7124,17 +7124,19 @@ window.scanSearchFilter = function(q){
       <div style="font-size:26px;font-weight:800;color:#fff;letter-spacing:-0.5px">Iso<span style="color:#4fc3f7">Manager</span></div>
       <div style="font-size:10px;color:#567;margin-top:4px;letter-spacing:1.5px;text-transform:uppercase">Pipe Spool Management</div>
     </div>
+    <form id="loginForm" autocomplete="on" onsubmit="event.preventDefault(); doLogin();">
     <label style="display:block;font-size:11px;color:#89a;margin-bottom:5px;font-family:monospace;letter-spacing:0.5px">MENO</label>
-    <input id="loginName" type="text" placeholder="napr. Martin Kolcar" onkeydown="doLoginKey(event)"
+    <input id="loginName" type="text" name="username" autocomplete="username" placeholder="napr. Martin Kolcar" onkeydown="doLoginKey(event)"
       style="width:100%;padding:11px 14px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.15);border-radius:8px;color:#fff;font-size:14px;margin-bottom:14px;box-sizing:border-box;outline:none;font-family:monospace" />
     <label style="display:block;font-size:11px;color:#89a;margin-bottom:5px;font-family:monospace;letter-spacing:0.5px">HESLO</label>
-    <input id="loginPass" type="password" placeholder="••••" onkeydown="doLoginKey(event)"
+    <input id="loginPass" type="password" name="password" autocomplete="current-password" placeholder="••••" onkeydown="doLoginKey(event)"
       style="width:100%;padding:11px 14px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.15);border-radius:8px;color:#fff;font-size:14px;margin-bottom:18px;box-sizing:border-box;outline:none;font-family:monospace" />
-    <button id="loginBtn" onclick="doLogin()"
+    <button id="loginBtn" type="submit"
       style="width:100%;padding:12px;background:linear-gradient(135deg,#1a6fa8,#4fc3f7);border:none;border-radius:8px;color:#fff;font-size:15px;font-weight:700;cursor:pointer;letter-spacing:0.5px">
       Prihlásiť sa
     </button>
     <div id="loginErr" style="color:#e57373;font-size:12px;text-align:center;margin-top:10px;min-height:18px;font-family:monospace"></div>
+    </form>
     <div style="text-align:center;margin-top:20px;font-size:10px;color:#345;font-family:monospace">© IsoManager 2026 · Martin Kolčár</div>
   </div>
 </div>
