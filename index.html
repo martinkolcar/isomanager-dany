@@ -10,20 +10,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 import { getFirestore, collection, doc, onSnapshot, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getDatabase, ref as dbRef, set as dbSet, update as dbUpdate, remove as dbRemove, onValue as dbOnValue, push as dbPush, query as dbQuery, orderByChild as dbOrderByChild, startAt as dbStartAt, get as dbGet } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, createUserWithEmailAndPassword, updateProfile, deleteUser as fbDeleteUser } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-const _app = initializeApp({
-  apiKey: "AIzaSyBDD4bhLD7XqYbwIi8LhdkHdmXfrM1-0X0",
-  authDomain: "isomanager-4cb2f.firebaseapp.com",
-  databaseURL: "https://isomanager-4cb2f-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId: "isomanager-4cb2f",
-  storageBucket: "isomanager-4cb2f.firebasestorage.app",
-  messagingSenderId: "319198298733",
-  appId: "1:319198298733:web:e90ff234366c88a5eccaf3"
-});
-window.DB = getDatabase(_app);
-const _auth = getAuth(_app);
-window._auth = _auth;
-
-// Druhý Firebase — WeldPro (len čítanie izometrií)
+// Hlavný Firebase — DANY
 const _weldproApp = initializeApp({
   apiKey: "AIzaSyCI-WXOAfRtM1pvMseR0PFppp5f1WjOkcc",
   authDomain: "weldpro-dany.firebaseapp.com",
@@ -32,11 +19,25 @@ const _weldproApp = initializeApp({
   storageBucket: "weldpro-dany.firebasestorage.app",
   messagingSenderId: "319198298733",
   appId: "1:319198298733:web:e90ff234366c88a5eccaf3"
-}, "weldpro");
+});
 window.WeldproDB = getDatabase(_weldproApp);
+window.DB = window.WeldproDB;
+const _auth = getAuth(_weldproApp);
+window._auth = _auth;
 window.WeldproGet = (p) => dbGet(dbRef(window.WeldproDB, p));
 window.WeldproOnValue = (p, cb) => dbOnValue(dbRef(window.WeldproDB, p), cb);
 window.WeldproSet = (p, v) => dbSet(dbRef(window.WeldproDB, p), v);
+
+// Starý Monsteras app — už sa nepoužíva
+const _app = initializeApp({
+  apiKey: "AIzaSyBDD4bhLD7XqYbwIi8LhdkHdmXfrM1-0X0",
+  authDomain: "isomanager-4cb2f.firebaseapp.com",
+  databaseURL: "https://isomanager-4cb2f-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "isomanager-4cb2f",
+  storageBucket: "isomanager-4cb2f.firebasestorage.app",
+  messagingSenderId: "319198298733",
+  appId: "1:319198298733:web:e90ff234366c88a5eccaf3"
+}, "monsteras_unused");
 
 // WeldPro Firestore - pre signály a projekty
 window.WeldproFS = getFirestore(_weldproApp);
@@ -119,12 +120,12 @@ window.startWeldProSyncListeners = function startWeldProSyncListeners() {
   console.log('✅ WeldPro sync listenery aktívne');
 }
 
-window.DBRef = (p) => dbRef(window.DB, p);
-window.DBSet = (p, v) => dbSet(dbRef(window.DB, p), v);
-window.DBUpdate = (p, v) => dbUpdate(dbRef(window.DB, p), v);
-window.DBRemove = (p) => dbRemove(dbRef(window.DB, p));
-window.DBGet = (p) => dbGet(dbRef(window.DB, p));
-window.DBOnValue = (p, cb) => dbOnValue(dbRef(window.DB, p), cb);
+window.DBRef = (p) => dbRef(window.WeldproDB, p);
+window.DBSet = (p, v) => dbSet(dbRef(window.WeldproDB, p), v);
+window.DBUpdate = (p, v) => dbUpdate(dbRef(window.WeldproDB, p), v);
+window.DBRemove = (p) => dbRemove(dbRef(window.WeldproDB, p));
+window.DBGet = (p) => dbGet(dbRef(window.WeldproDB, p));
+window.DBOnValue = (p, cb) => dbOnValue(dbRef(window.WeldproDB, p), cb);
 
 // AUTH - wait for login before showing app
 onAuthStateChanged(_auth, (user) => {
@@ -134,13 +135,13 @@ onAuthStateChanged(_auth, (user) => {
     document.getElementById('app').style.display='flex';
     document.getElementById('userNameDisplay').textContent = user.displayName || (user.email ? user.email.split('@')[0] : 'User');
     // Automaticky zapíš usera do DB ak tam ešte nie je
-    dbGet(dbRef(window.DB, 'users/' + user.uid)).then(function(snap) {
+    dbGet(dbRef(window.WeldproDB, 'users/' + user.uid)).then(function(snap) {
       if (!snap.val()) {
         // Meno z displayName alebo z emailu pred @
         var emailName = user.email ? user.email.split('@')[0] : user.uid;
         var displayName = user.displayName || emailName;
         // Skús sformatovať meno z emailu (napr. martinkolcar -> Martin Kolcar)
-        dbSet(dbRef(window.DB, 'users/' + user.uid), {
+        dbSet(dbRef(window.WeldproDB, 'users/' + user.uid), {
           name: displayName,
           email: user.email || '',
           createdAt: Date.now()
@@ -175,7 +176,7 @@ onAuthStateChanged(_auth, (user) => {
   }
 });
 
-window.DBOn = (p, cb) => { dbOnValue(dbRef(window.DB, p), snap => cb(snap)); return () => {}; };
+window.DBOn = (p, cb) => { dbOnValue(dbRef(window.WeldproDB, p), snap => cb(snap)); return () => {}; };
 window.dispatchEvent(new Event('fbReady'));
 
 // ===== JAZYKY - MUSI BYT SKORANE =====
@@ -195,16 +196,16 @@ window.writeLog = function(action, detail){
   const user = window._currentUser;
   const name = user ? (user.displayName || user.email.split('@')[0]) : 'Neznámy';
   const ts = Date.now();
-  dbPush(dbRef(window.DB, 'logs'), {
+  dbPush(dbRef(window.WeldproDB, 'logs'), {
     name, action, detail: detail||'', ts
   });
   // cleanup logs older than 14 days
   const cutoff = ts - 14*24*60*60*1000;
-  const logsRef = dbQuery(dbRef(window.DB,'logs'), dbOrderByChild('ts'), dbStartAt(0));
+  const logsRef = dbQuery(dbRef(window.WeldproDB,'logs'), dbOrderByChild('ts'), dbStartAt(0));
   dbOnValue(logsRef, snap => {
     const all = snap.val()||{};
     Object.entries(all).forEach(([k,v])=>{
-      if(v.ts < cutoff) dbRemove(dbRef(window.DB,'logs/'+k));
+      if(v.ts < cutoff) dbRemove(dbRef(window.WeldproDB,'logs/'+k));
     });
   }, {onlyOnce:true});
 };
@@ -226,7 +227,7 @@ window.loadLogEntries = function(){
   const el = document.getElementById('logList');
   el.innerHTML = '<div style="color:#567;font-size:12px">Načítavam...</div>';
   const cutoff = Date.now() - 14*24*60*60*1000;
-  dbOnValue(dbQuery(dbRef(window.DB,'logs'), dbOrderByChild('ts'), dbStartAt(cutoff)), snap => {
+  dbOnValue(dbQuery(dbRef(window.WeldproDB,'logs'), dbOrderByChild('ts'), dbStartAt(cutoff)), snap => {
     const all = snap.val()||{};
     const entries = Object.values(all).sort((a,b)=>b.ts-a.ts);
     if(!entries.length){ el.innerHTML='<div style="color:#567;font-size:12px;padding:8px 0">Žiadne záznamy za posledné 2 týždne.</div>'; return; }
@@ -246,7 +247,7 @@ window.loadLogEntries = function(){
 window._startLogListener = function(){
   const lastSeen = parseInt(localStorage.getItem('logLastSeen')||'0');
   const cutoff = Date.now() - 14*24*60*60*1000;
-  dbOnValue(dbQuery(dbRef(window.DB,'logs'), dbOrderByChild('ts'), dbStartAt(Math.max(cutoff, lastSeen))), snap => {
+  dbOnValue(dbQuery(dbRef(window.WeldproDB,'logs'), dbOrderByChild('ts'), dbStartAt(Math.max(cutoff, lastSeen))), snap => {
     const all = snap.val()||{};
     const count = Object.values(all).filter(e => e.ts > lastSeen).length;
     const badge = document.getElementById('logBadge');
