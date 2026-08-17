@@ -5607,8 +5607,7 @@ function exportPrehladExcel(){
 
 // ===== EXPORT NAKLADKA =====
 function exportNakladkaPdf(nid){
-  // Načítaj nakladku fresh z Firebase aby sme mali aktuálne fotky
-  db.ref('nakladky/'+nid).once('value').then(freshSnap=>{
+  dbGet(dbRef(window.WeldproDB,'nakladky/'+nid)).then(freshSnap=>{
     const nkFresh = freshSnap.val()||nakladky[nid];
     _exportNakladkaPdfData(nid, nkFresh);
   }).catch(()=>{ _exportNakladkaPdfData(nid, nakladky[nid]); });
