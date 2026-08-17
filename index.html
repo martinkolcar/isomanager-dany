@@ -5952,8 +5952,8 @@ function buildEnkSpList(q, sec){
   const el = document.getElementById('enkSpList');
   el.innerHTML='';
   const ql = q.toLowerCase();
-  // show free spools + spools not in THIS nakladka
-  const all = getAllSpools().filter(s=>!s.nakladkaId || s.nakladkaId===editNakId);
+  // show vyvezene free spools + spools not in THIS nakladka
+  const all = getAllSpools().filter(s=>s.vyvezene&&(!s.nakladkaId||s.nakladkaId===''||s.nakladkaId===editNakId));
   // exclude already in this nakladka
   const nk = nakladky[editNakId]||{};
   const alreadyIn = new Set((nk.spools||[]));
@@ -6194,7 +6194,7 @@ function buildEbSpList(q, sec){
   const ql=q.toLowerCase();
   const bk=baliky[editBalikId]||{};
   const alreadyIn=new Set(bk.spools||[]);
-  const all=getFreeSpools();
+  const all=getAllSpools().filter(s=>s.vyvezene&&!s.balikId&&(!s.nakladkaId||s.nakladkaId===''));
   let any=false;
   all.forEach(sp=>{
     const ref=sp.sec+'|'+sp.key+'|'+sp.sid;
