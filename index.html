@@ -471,7 +471,7 @@ window.loadIsoDataFromFirebase = function(){
     window.startWeldProSyncListeners();
     // Načítaj spooly cez REST po 2 sekundách - keď sú všetky listenery hotové
     setTimeout(function() {
-      fetch('https://isomanager-4cb2f-default-rtdb.europe-west1.firebasedatabase.app/spools.json')
+      fetch('https://weldpro-dany-default-rtdb.europe-west1.firebasedatabase.app/spools.json')
         .then(function(r){ return r.json(); })
         .then(function(d){
           if (!d) return;
@@ -7630,8 +7630,8 @@ function loadProjData(projId) {
     }
   });
 
-  // Live spooly — vlastné z isomanager-4cb2f
-  window.DBOnValue('spools', function(snap) {
+  // Live spooly — z DANY Firebase
+  dbOnValue(dbRef(window.WeldproDB, 'spools'), function(snap) {
     var d = snap.val() || {};
     Object.keys(d).forEach(function(sec) {
       Object.keys(d[sec] || {}).forEach(function(k) {
