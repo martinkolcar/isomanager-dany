@@ -5180,8 +5180,8 @@ function buildBalikSpList(q,sec){
       });
     });
   });
-  // filter only free spools (no balik, no nakladka) AND vyvezene
-  const free=all.filter(sp=>!sp.balikId&&!sp.nakladkaId&&sp.vyvezene);
+  // filter only free spools (no balik, no nakladka)
+  const free=all.filter(sp=>!sp.balikId&&!sp.nakladkaId);
   let any=false;
   free.forEach(sp=>{
     if(sec!=='all'&&sp.sec!==sec) return;
