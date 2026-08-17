@@ -3087,8 +3087,6 @@ tr:hover td{background:var(--surface2)}
       <input class="m-inp" id="nakSpSearch" placeholder="Hľadaj spool..." oninput="filterNakSp(this.value)" style="flex:1" />
       <select class="m-inp" id="nakSecFilter" onchange="filterNakSp(document.getElementById('nakSpSearch').value)" style="width:90px">
         <option value="all">Všetky</option>
-        <option value="SUL">SUL</option><option value="FLA">FLA</option>
-        <option value="LIG">LIG</option><option value="DRY">DRY</option><option value="LHT">LHT</option>
       </select>
     </div>
     <div class="spool-check-list" id="nakSpList"></div>
@@ -5135,10 +5133,14 @@ function delSpool(sid){
 // ===== ALL SPOOLS FLAT =====
 function getAllSpools(){
   const res=[];
+  const projId=(window._activeProjId||'').toUpperCase();
   SECTIONS.forEach(sec=>{
     (ISOMETRIES_DATA[sec]||[]).forEach(iso=>{
       const k=sec+'/'+isoKey(iso);
-      Object.entries(spools[k]||{}).forEach(([sid,sp])=>{
+      const kProj=projId ? projId+'/'+isoKey(iso) : null;
+      const sps=spools[k]||(kProj&&spools[kProj])||{};
+      Object.entries(sps).forEach(([sid,sp])=>{
+        if(!sp||typeof sp!=='object') return;
         res.push({sec,iso,sid,key:isoKey(iso),...sp});
       });
     });
@@ -5162,10 +5164,7 @@ function listenBaliky(){
 function openBalikModal(){
   document.getElementById('balikName').value='';
   document.getElementById('balikSpSearch').value='';
-  // Naplň sekcie dynamicky
-  const sf=document.getElementById('balikSecFilter');
-  sf.innerHTML='<option value="all">Všetky</option>'+(window.SECTIONS||[]).map(s=>`<option value="${s}">${s}</option>`).join('');
-  sf.value='all';
+  document.getElementById('balikSecFilter').value='all';
   document.getElementById('balikMatList').innerHTML='';
   // reload all spools fresh before building list
   const loadAndBuild = () => {
@@ -5185,27 +5184,20 @@ function buildBalikSpList(q,sec){
   if(!el) return;
   el.innerHTML='';
   const ql=q.toLowerCase();
-  const projId=(window._activeProjId||'').toUpperCase();
+  // get all spools across all sections
   let all=[];
-  // Načítaj spooly priamo z cache podľa DANY prefixu
-  Object.entries(spools).forEach(([k,sps])=>{
-    // k je napr. "DANY/G1_1_d_p3-100_1z3" alebo "G1/isoKey"
-    if(!sps||typeof sps!=='object') return;
-    Object.entries(sps).forEach(([sid,sp])=>{
-      if(!sp||!sp.num) return;
-      // Zisti sekciu a iso z kľúča
-      const parts=k.split('/');
-      const sec=parts[0], isoK=parts.slice(1).join('/');
-      // Nájdi iso názov
-      let iso=isoK;
-      SECTIONS.forEach(s=>{
-        (ISOMETRIES_DATA[s]||[]).forEach(i=>{ if(isoKey(i)===isoK) iso=i; });
+  SECTIONS.forEach(s=>{
+    (ISOMETRIES_DATA[s]||[]).forEach(iso=>{
+      const k=isoKey(iso);
+      const sps=spools[s+'/'+k]||{};
+      Object.entries(sps).forEach(([sid,sp])=>{
+        if(!sp||!sp.num) return;
+        all.push({sec:s,iso,key:k,sid,...sp});
       });
-      all.push({sec,iso,key:isoK,sid,...sp});
     });
   });
-  // filter: vyvezene a voľné (bez baliku a nakladky)
-  const free=all.filter(sp=>sp.vyvezene&&!sp.balikId&&(!sp.nakladkaId||sp.nakladkaId===''));
+  // filter only free spools (no balik, no nakladka)
+  const free=all.filter(sp=>!sp.balikId&&!sp.nakladkaId);
   let any=false;
   free.forEach(sp=>{
     if(sec!=='all'&&sp.sec!==sec) return;
@@ -5870,7 +5862,9 @@ function editNakladka(nid){
   const enkBtn = document.getElementById('enkSaveBtn');
   if(enkBtn) enkBtn.textContent='Uložiť zmeny';
   document.getElementById('enkSpSearch').value='';
-  document.getElementById('enkSecFilter').value='all';
+  // Naplň sekcie dynamicky
+  const enkSf=document.getElementById('enkSecFilter');
+  if(enkSf){ enkSf.innerHTML='<option value="all">Všetky</option>'+(window.SECTIONS||[]).map(s=>`<option value="${s}">${s}</option>`).join(''); enkSf.value='all'; }
   buildEnkSpList('','all');
   openModal('editNakladkaModal');
 }
@@ -6151,7 +6145,9 @@ function editBalik(bid){
   document.getElementById('ebName').value = bk.name||'';
   buildEbCurrentList(bid);
   document.getElementById('ebSpSearch').value='';
-  document.getElementById('ebSecFilter').value='all';
+  // Naplň sekcie dynamicky
+  const ebSf=document.getElementById('ebSecFilter');
+  if(ebSf){ ebSf.innerHTML='<option value="all">Všetky</option>'+(window.SECTIONS||[]).map(s=>`<option value="${s}">${s}</option>`).join(''); ebSf.value='all'; }
   buildEbSpList('','all');
   const ebMatCur = document.getElementById('ebMatCurrentList');
   if(ebMatCur) renderMatCurrentList('ebMatCurrentList', bk.volnyMaterial||[], null, bid);
@@ -6889,8 +6885,6 @@ window.scanSearchFilter = function(q){
       <input class="m-inp" id="enkSpSearch" placeholder="Hľadaj spool..." oninput="filterEnkSp(this.value)" style="flex:1" />
       <select class="m-inp" id="enkSecFilter" onchange="filterEnkSp(document.getElementById('enkSpSearch').value)" style="width:90px">
         <option value="all">Všetky</option>
-        <option value="SUL">SUL</option><option value="FLA">FLA</option>
-        <option value="LIG">LIG</option><option value="DRY">DRY</option><option value="LHT">LHT</option>
       </select>
     </div>
     <div class="spool-check-list" id="enkSpList"></div>
@@ -6928,8 +6922,6 @@ window.scanSearchFilter = function(q){
       <input class="m-inp" id="ebSpSearch" placeholder="Hľadaj spool..." oninput="filterEbSp(this.value)" style="flex:1" />
       <select class="m-inp" id="ebSecFilter" onchange="filterEbSp(document.getElementById('ebSpSearch').value)" style="width:90px">
         <option value="all">Všetky</option>
-        <option value="SUL">SUL</option><option value="FLA">FLA</option>
-        <option value="LIG">LIG</option><option value="DRY">DRY</option><option value="LHT">LHT</option>
       </select>
     </div>
     <div class="spool-check-list" id="ebSpList"></div>
