@@ -100,8 +100,12 @@ window.startWeldProSyncListeners = function startWeldProSyncListeners() {
       });
     });
     // Nerobíme renderSb() aby sme neprepísali spools - len aktualizuj ISOMETRIES_DATA
-    // renderSb sa zavolá sám cez db listener
-    console.log('🔄 IsoManager: sekcie aktualizované z WeldPro');
+    // Aktualizuj SECTIONS
+    window.SECTIONS = Object.keys(window.ISOMETRIES_DATA).sort();
+    if(typeof renderSecTabs === 'function') renderSecTabs();
+    if(window.SECTIONS.length > 0 && !curSec) switchSec(window.SECTIONS[0]);
+    else if(typeof renderSb === 'function') renderSb();
+    console.log('🔄 IsoManager: sekcie aktualizované z WeldPro', window.SECTIONS);
   });
 
   console.log('✅ WeldPro sync listenery aktívne');
@@ -440,52 +444,24 @@ window.SECTIONS = [];
 
 window.loadIsoDataFromFirebase = function(){
   if(!window.WeldproDB) return;
-  dbOnValue(dbRef(window.WeldproDB, 'isomanager/sections'), snap => {
-    // Ulož do cache vždy
-    window._legacyIsoData = snap.val() || {};
-
-    // Aplikuj len ak je aktívny dany projekt (alebo žiadny projekt)
-    if (window._currentProject && window._currentProject.id !== 'dany') return;
-
-    const data = window._legacyIsoData;
-    window._isoUrls = {};
-    if(data && Object.keys(data).length){
-      window.SECTIONS = Object.keys(data).sort();
-      window.ISOMETRIES_DATA = {};
-      window.SECTIONS.forEach(sec => {
-        const isos = data[sec] || {};
-        window.ISOMETRIES_DATA[sec] = Object.keys(isos).map(k => isos[k].name || k);
-        Object.entries(isos).forEach(([isoK, isoData]) => {
-          if(isoData && isoData.thumbnailUrl) window._isoUrls[sec+'/'+isoK] = isoData.thumbnailUrl;
-          else if(isoData && isoData.thumbnail) window._isoUrls[sec+'/'+isoK] = isoData.thumbnail;
-        });
-      });
-    } else {
-      window.SECTIONS = [];
-      window.ISOMETRIES_DATA = {};
-    }
-    if(typeof renderSecTabs === 'function') renderSecTabs();
-    if(window.SECTIONS.length > 0 && !curSec) switchSec(window.SECTIONS[0]);
-    else renderSb();
-    // Spusti WeldPro sync
-    window.startWeldProSyncListeners();
-    // Načítaj spooly cez REST po 2 sekundách - keď sú všetky listenery hotové
-    setTimeout(function() {
-      fetch('https://weldpro-dany-default-rtdb.europe-west1.firebasedatabase.app/spools.json')
-        .then(function(r){ return r.json(); })
-        .then(function(d){
-          if (!d) return;
-          Object.keys(d).forEach(function(sec){
-            Object.keys(d[sec]||{}).forEach(function(k){
-              window.spools[sec+'/'+k] = d[sec][k]||{};
-            });
+  // Sekcie sa načítajú cez startWeldProSyncListeners z DANY Firebase
+  // Spusti WeldPro sync
+  window.startWeldProSyncListeners();
+  // Načítaj spooly cez REST
+  setTimeout(function() {
+    fetch('https://weldpro-dany-default-rtdb.europe-west1.firebasedatabase.app/spools.json')
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        if (!d) return;
+        Object.keys(d).forEach(function(sec){
+          Object.keys(d[sec]||{}).forEach(function(k){
+            window.spools[sec+'/'+k] = d[sec][k]||{};
           });
-          if(typeof renderSb === 'function') renderSb();
-          if(typeof renderSpoolTable === 'function' && curIso) renderSpoolTable();
-          console.log('✅ Spooly načítané cez REST:', Object.keys(window.spools));
-        }).catch(function(e){ console.warn('Spools REST error:', e); });
-    }, 500);
-  });
+        });
+        if(typeof renderSb === 'function') renderSb();
+        if(typeof renderSpoolTable === 'function' && curIso) renderSpoolTable();
+      }).catch(function(e){ console.warn('Spools REST error:', e); });
+  }, 500);
 };
 
 // Spustí sa po Firebase init
