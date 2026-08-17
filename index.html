@@ -5168,18 +5168,20 @@ function buildBalikSpList(q,sec){
   const ql=q.toLowerCase();
   // get all spools across all sections
   let all=[];
+  const projId=(window._activeProjId||'').toUpperCase();
   SECTIONS.forEach(s=>{
     (ISOMETRIES_DATA[s]||[]).forEach(iso=>{
       const k=isoKey(iso);
-      const sps=spools[s+'/'+k]||{};
+      // Skús sekciu/key aj projektový prefix
+      const sps=spools[s+'/'+k]||spools[projId+'/'+k]||{};
       Object.entries(sps).forEach(([sid,sp])=>{
         if(!sp||!sp.num) return;
         all.push({sec:s,iso,key:k,sid,...sp});
       });
     });
   });
-  // filter only free spools (no balik, no nakladka)
-  const free=all.filter(sp=>!sp.balikId&&!sp.nakladkaId);
+  // filter only free spools (no balik, no nakladka) AND vyvezene
+  const free=all.filter(sp=>!sp.balikId&&!sp.nakladkaId&&sp.vyvezene);
   let any=false;
   free.forEach(sp=>{
     if(sec!=='all'&&sp.sec!==sec) return;
