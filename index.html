@@ -5449,8 +5449,10 @@ function renderNakladkaGrid(){
   el.innerHTML='';
   entries.sort((a,b)=>b[1].created-a[1].created).forEach(([nid,nk])=>{
     // Count direct spools + spools from baliky
-    let cnt=(nk.spools||[]).length;
-    (nk.balikIds||[]).forEach(bid=>{ const bk=baliky[bid]; if(bk) cnt+=(bk.spools||[]).length; });
+    // Počítaj unikátne spooly (priame + z balíkov, bez duplikátov)
+    const allRefs=new Set(nk.spools||[]);
+    (nk.balikIds||[]).forEach(bid=>{ const bk=baliky[bid]; if(bk) (bk.spools||[]).forEach(s=>allRefs.add(s)); });
+    const cnt=allRefs.size;
     const balikCnt=(nk.balikIds||[]).length;
     const card=document.createElement('div');
     card.className='nakladka-card';
