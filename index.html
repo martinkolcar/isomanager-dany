@@ -100,11 +100,19 @@ window.startWeldProSyncListeners = function startWeldProSyncListeners() {
       });
     });
     // Nerobíme renderSb() aby sme neprepísali spools - len aktualizuj ISOMETRIES_DATA
-    // Aktualizuj SECTIONS
     window.SECTIONS = Object.keys(window.ISOMETRIES_DATA).sort();
     if(typeof renderSecTabs === 'function') renderSecTabs();
     if(window.SECTIONS.length > 0 && !curSec) switchSec(window.SECTIONS[0]);
     else if(typeof renderSb === 'function') renderSb();
+    // Naplň sekcie do dropdownov
+    ['balikSecFilter','enkSecFilter','ebSecFilter'].forEach(function(id){
+      var el = document.getElementById(id);
+      if(!el) return;
+      var cur = el.value;
+      el.innerHTML = '<option value="all">Všetky</option>' +
+        window.SECTIONS.map(function(s){ return '<option value="'+s+'">'+s+'</option>'; }).join('');
+      if(cur) el.value = cur;
+    });
     console.log('🔄 IsoManager: sekcie aktualizované z WeldPro', window.SECTIONS);
   });
 
@@ -3032,8 +3040,6 @@ tr:hover td{background:var(--surface2)}
       <input class="m-inp" id="balikSpSearch" placeholder="Hľadaj spool / izometriu..." oninput="filterBalikSp(this.value)" style="flex:1" />
       <select class="m-inp" id="balikSecFilter" onchange="filterBalikSp(document.getElementById('balikSpSearch').value)" style="width:90px">
         <option value="all">Všetky</option>
-        <option value="SUL">SUL</option><option value="FLA">FLA</option>
-        <option value="LIG">LIG</option><option value="DRY">DRY</option><option value="LHT">LHT</option>
       </select>
     </div>
     <div class="spool-check-list" id="balikSpList"></div>
@@ -3065,8 +3071,7 @@ tr:hover td{background:var(--surface2)}
       <input class="m-inp" id="nakSpSearch" placeholder="Hľadaj spool..." oninput="filterNakSp(this.value)" style="flex:1" />
       <select class="m-inp" id="nakSecFilter" onchange="filterNakSp(document.getElementById('nakSpSearch').value)" style="width:90px">
         <option value="all">Všetky</option>
-        <option value="SUL">SUL</option><option value="FLA">FLA</option>
-        <option value="LIG">LIG</option><option value="DRY">DRY</option><option value="LHT">LHT</option>
+
       </select>
     </div>
     <div class="spool-check-list" id="nakSpList"></div>
@@ -6857,8 +6862,7 @@ window.scanSearchFilter = function(q){
       <input class="m-inp" id="enkSpSearch" placeholder="Hľadaj spool..." oninput="filterEnkSp(this.value)" style="flex:1" />
       <select class="m-inp" id="enkSecFilter" onchange="filterEnkSp(document.getElementById('enkSpSearch').value)" style="width:90px">
         <option value="all">Všetky</option>
-        <option value="SUL">SUL</option><option value="FLA">FLA</option>
-        <option value="LIG">LIG</option><option value="DRY">DRY</option><option value="LHT">LHT</option>
+
       </select>
     </div>
     <div class="spool-check-list" id="enkSpList"></div>
@@ -6896,8 +6900,7 @@ window.scanSearchFilter = function(q){
       <input class="m-inp" id="ebSpSearch" placeholder="Hľadaj spool..." oninput="filterEbSp(this.value)" style="flex:1" />
       <select class="m-inp" id="ebSecFilter" onchange="filterEbSp(document.getElementById('ebSpSearch').value)" style="width:90px">
         <option value="all">Všetky</option>
-        <option value="SUL">SUL</option><option value="FLA">FLA</option>
-        <option value="LIG">LIG</option><option value="DRY">DRY</option><option value="LHT">LHT</option>
+
       </select>
     </div>
     <div class="spool-check-list" id="ebSpList"></div>
