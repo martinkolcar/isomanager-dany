@@ -4921,6 +4921,8 @@ function initApp(){
         spools[sec+'/'+k] = v || {};
       });
     });
+    console.log('🔄 spools listener FIRED. curSec:', curSec, 'curIso:', curIso, 'keys:', Object.keys(spools));
+    if(curIso) console.log('🔄 spooly pre curIso:', JSON.stringify(getSpools(curSec,curIso)));
     if(typeof renderSb === 'function') renderSb();
     if(typeof renderSpoolTable === 'function' && curIso) renderSpoolTable();
   });
