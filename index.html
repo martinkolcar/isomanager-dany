@@ -4908,11 +4908,14 @@ function initApp(){
     if(typeof window.loadProjectsAndShow === 'function') window.loadProjectsAndShow();
     else window.loadIsoDataFromFirebase();
   }, 100);
-  // SDK listener - PLNÉ nahradenie lokálnej kópie (nie merge!), aby sa
-  // premietli aj vymazania spoolov z databázy do UI. Object.assign predtým
-  // len pridával/aktualizoval kľúče a nikdy neodstránil vymazané spooly.
+  // SDK listener - PLNÉ PRESTAVANIE lokálnej kópie z nuly pri každej zmene.
+  // Dôležité: ak sa vymaže POSLEDNÝ spool izometrie, Firebase odstráni celý
+  // nadradený uzol z databázy - snímka ho potom vôbec neobsahuje, takže by sa
+  // k nemu kód nedostal a stará (vymazaná) hodnota by ostala v lokálnej pamäti.
+  // Preto najprv vyčistíme celý lokálny objekt a postavíme ho odznova z dát.
   db.ref('spools').on('value', snap => {
     const d = snap.val()||{};
+    Object.keys(spools).forEach(key => { delete spools[key]; });
     Object.entries(d).forEach(([sec, isoData]) => {
       Object.entries(isoData||{}).forEach(([k,v]) => {
         spools[sec+'/'+k] = v || {};
